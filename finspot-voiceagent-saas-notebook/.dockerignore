@@ -1,0 +1,59 @@
+# Dependencies
+**/node_modules
+**/__pycache__
+**/.venv
+**/venv
+
+# Build outputs
+**/dist
+**/*.pyc
+**/.pytest_cache
+
+# IDE and editors
+.vscode
+.idea
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# Documentation (not needed in image)
+Documents
+*.md
+!services/**/README.md
+
+# Kubernetes (not needed in image)
+k8s
+
+# Docker files (prevent recursive issues)
+docker-compose*.yml
+
+# Cache and temp files
+**/.cache
+**/tmp
+**/.temp
+
+# Logs
+**/*.log
+
+# Test files
+**/*.test.ts
+**/*.test.js
+**/tests
+**/__tests__
+
+# Development files
+**/.env
+**/.env.*
+!**/.env.example
+
+# Monitoring configs (copied separately if needed)
+monitoring
+
+# Claude/AI configs
+.claude
+
+# Scripts (not needed in runtime)
+scripts

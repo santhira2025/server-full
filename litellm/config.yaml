@@ -1,0 +1,21 @@
+model_list:
+  - model_name: qwen2.5-coder:7b
+    litellm_params:
+      model: ollama/qwen2.5-coder:7b
+      api_base: http://localhost:11434
+
+  - model_name: qwen2.5-coder:32b
+    litellm_params:
+      model: ollama/qwen2.5-coder:32b
+      api_base: http://localhost:11434
+
+  - model_name: llama2
+    litellm_params:
+      model: ollama/llama2
+      api_base: http://localhost:11434
+
+general_settings:
+  master_key: sk-ollama-local-key
+
+litellm_settings:
+  drop_params: true

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Argus AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --bg: #ffffff;
+            --surface: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #fff;
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 440px;
+            padding: 3rem;
+            background: white;
+            border-radius: 32px;
+            border: 1px solid var(--border);
+            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 0.5rem;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .logo i {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .form-group {
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.05);
+        }
+
+        button {
+            width: 100%;
+            padding: 1.1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+        }
+
+        .footer {
+            margin-top: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .error-toast {
+            background: #fef2f2;
+            color: #ef4444;
+            padding: 1rem;
+            border-radius: 12px;
+            border: 1px solid #fee2e2;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            display: none;
+            font-weight: 500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <a href="/" class="logo"><i class="ri-radar-fill"></i> ARGUS</a>
+        <p class="subtitle">Secure workspace authentication</p>
+
+        <div id="errorMessage" class="error-toast"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label>Work Email</label>
+                <input type="email" id="email" placeholder="name@company.com" required autofocus>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit">Complete Sign In <i class="ri-arrow-right-line"></i></button>
+        </form>
+
+        <div class="footer">
+            Don't have an account? <a href="/dashboard/signup">Create workspace</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById( 'loginForm' );
+        const error = document.getElementById( 'errorMessage' );
+
+        form.onsubmit = async ( e ) => {
+            e.preventDefault();
+            const email = document.getElementById( 'email' ).value;
+            const password = document.getElementById( 'password' ).value;
+
+            error.style.display = 'none';
+
+            try {
+                const response = await fetch( '/dashboard/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify( { email, password } )
+                } );
+
+                if ( response.ok ) {
+                    window.location.href = '/dashboard/';
+                } else {
+                    const data = await response.json();
+                    error.innerText = data.detail || 'Invalid login details';
+                    error.style.display = 'block';
+                }
+            } catch ( err ) {
+                error.innerText = 'Network error. Please check your connection.';
+                error.style.display = 'block';
+            }
+        };
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,104 @@
+<script>
+// ========== OVERVIEW ==========
+PAGES.overview=function(){
+  var modules=[
+    {icon:"\u{1F4DA}",title:"Learning Engine",desc:"15 learning paths, 500+ hrs, adaptive AI, real labs",color:"var(--accent)",tag:"Core",pg:"learning"},
+    {icon:"\u{1F680}",title:"Deployment Engine",desc:"100+ tools, one-click deploy, Helm/Terraform templates",color:"var(--blue)",tag:"Core",pg:"deploy"},
+    {icon:"\u{1F527}",title:"Troubleshooter AI",desc:"10,000+ errors, instant RCA, step-by-step fixes",color:"var(--red)",tag:"AI",pg:"troubleshoot"},
+    {icon:"\u{1F3AF}",title:"Interview Engine",desc:"500+ Q&A, mock AI interviews, scoring & feedback",color:"var(--purple)",tag:"Core",pg:"interview"},
+    {icon:"\u{1F4CA}",title:"Log Analyzer",desc:"Upload logs \u2192 AI analysis, anomaly detection, reports",color:"var(--orange)",tag:"AI",pg:"analyzer"},
+    {icon:"\u2728",title:"5-Point Expander",desc:"5 keywords \u2192 complete docs with configs & diagrams",color:"var(--yellow)",tag:"AI",pg:"expander"},
+    {icon:"\u{1F510}",title:"Config Vault",desc:"520+ production configs, env-specific, versioned",color:"var(--green)",tag:"Core",pg:"configvault"},
+    {icon:"\u{1F3D7}\uFE0F",title:"Arch Generator",desc:"Describe \u2192 full architecture with implementation guide",color:"var(--pink)",tag:"AI",pg:"architecture"}
+  ];
+  var activity=[
+    {c:"var(--accent)",t:'<strong>New learning path</strong> "AIOps & MLOps" published with 20 topics',time:"2 min ago"},
+    {c:"var(--blue)",t:'<strong>Deployment template</strong> Istio Service Mesh v1.20 added',time:"15 min ago"},
+    {c:"var(--red)",t:'<strong>Error catalog</strong> updated: +150 new Kubernetes errors',time:"1 hr ago"},
+    {c:"var(--purple)",t:'<strong>Interview engine</strong> mock scoring algorithm improved',time:"3 hr ago"},
+    {c:"var(--orange)",t:'<strong>Config vault</strong> Redis 7.2 cluster configs added',time:"5 hr ago"},
+    {c:"var(--green)",t:'<strong>Lab system</strong> k3s provisioner upgraded to v1.29',time:"8 hr ago"}
+  ];
+  var actions=[
+    {icon:"\u{1F680}",label:"Deploy Template",pg:"deploy"},
+    {icon:"\u{1F527}",label:"Troubleshoot Error",pg:"troubleshoot"},
+    {icon:"\u{1F4DA}",label:"Start Learning",pg:"learning"},
+    {icon:"\u{1F3AF}",label:"Mock Interview",pg:"interview"},
+    {icon:"\u{1F4CA}",label:"Analyze Logs",pg:"analyzer"},
+    {icon:"\u{1F510}",label:"Browse Configs",pg:"configvault"}
+  ];
+  var pricing=[
+    {tier:"Free",price:"$0",features:["5 topics/day","Basic troubleshooter","10 Q&A/day","Community support"],color:"var(--text3)"},
+    {tier:"Pro",price:"$29/mo",features:["Unlimited access","Full troubleshooter","All interview Q&A","Labs 2hr/day","Config vault","Priority support"],color:"var(--accent)"},
+    {tier:"Team",price:"$19/user/mo",features:["Everything in Pro","Team dashboards","Skill assessments","Custom paths","SSO","Admin analytics"],color:"var(--blue)"},
+    {tier:"Enterprise",price:"Custom",features:["Everything","Private deploy","Custom integrations","SLA 99.95%","On-prem option","Dedicated CSM"],color:"var(--purple)"}
+  ];
+  var h='<div class="page-header"><div class="bcrumb"><a onclick="goTo(\'overview\')">Home</a> / Overview</div><div class="hdr-row"><div><h2>DevOps Master Platform</h2><p>Enterprise SaaS \u2014 Learning \u00b7 Deployment \u00b7 Operations \u00b7 Troubleshooting \u00b7 Interview Prep</p></div><div class="hdr-actions"><div class="bell" title="3 notifications">\u{1F514}<span class="dot"></span></div></div></div><div class="header-stats"><div class="header-stat"><span class="val counter" style="color:var(--accent)" data-target="517">0</span><span class="label">Topics</span></div><div class="header-stat"><span class="val counter" style="color:var(--blue)" data-target="520">0</span><span class="label">Configs</span></div><div class="header-stat"><span class="val" style="color:var(--red)">10K+</span><span class="label">Errors</span></div><div class="header-stat"><span class="val counter" style="color:var(--purple)" data-target="500">0</span><span class="label">Interview Qs</span></div><div class="header-stat"><span class="val counter" style="color:var(--orange)" data-target="168">0</span><span class="label">Labs</span></div><div class="header-stat"><span class="val" style="color:var(--yellow)">8</span><span class="label">Modules</span></div></div></div>';
+  h+='<div class="content">';
+  // Module cards
+  h+='<div class="grid grid-4" style="margin-bottom:24px">';
+  modules.forEach(function(m,i){
+    h+='<div class="card module-card animate delay-'+(i%4+1)+'" onclick="goTo(\''+m.pg+'\')"><div class="card-glow"></div><div class="module-icon">'+m.icon+'</div><h3>'+m.title+'</h3><div class="desc">'+m.desc+'</div><span class="module-tag" style="background:'+m.color+'22;color:'+m.color+'">'+m.tag+'</span></div>';
+  });
+  h+='</div>';
+  // Charts
+  h+='<div class="grid grid-2" style="margin-bottom:24px"><div class="chart-wrap"><h3 style="margin-bottom:12px">User Growth (Monthly)</h3><div style="height:280px"><canvas id="chart-growth"></canvas></div></div><div class="chart-wrap"><h3 style="margin-bottom:12px">Module Distribution</h3><div style="height:280px"><canvas id="chart-modules"></canvas></div></div></div>';
+  // Activity + Quick Actions
+  h+='<div class="grid grid-2" style="margin-bottom:24px"><div class="card"><h3 style="margin-bottom:12px">\u{1F4CB} Recent Activity</h3>';
+  activity.forEach(function(a){
+    h+='<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0;background:'+a.c+'"></div><div><div style="font-size:12px;color:var(--text2);line-height:1.5">'+a.t+'</div><div style="font-size:10px;color:var(--text3);font-family:JetBrains Mono,monospace;margin-top:2px">'+a.time+'</div></div></div>';
+  });
+  h+='</div><div class="card"><h3 style="margin-bottom:12px">\u26A1 Quick Actions</h3><div class="grid grid-2" style="gap:8px">';
+  actions.forEach(function(q){
+    h+='<div style="padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px;transition:all .2s" onclick="goTo(\''+q.pg+'\')" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'"><span style="font-size:16px">'+q.icon+'</span>'+q.label+'</div>';
+  });
+  h+='</div></div></div>';
+  // Architecture flow
+  h+='<h3 style="font-size:16px;margin-bottom:16px">\u{1F3D7}\uFE0F Platform Architecture Flow</h3><div class="card" style="padding:24px"><div class="arch-flow">';
+  ["\u{1F464} User","\u2192","\u{1F310} CDN/CloudFlare","\u2192","\u{1F500} API Gateway","\u2192","\u{1F511} Auth (Keycloak)"].forEach(function(n){
+    h+=n==="\u2192"?'<div class="arch-arrow">\u2192</div>':'<div class="arch-node" style="border-color:var(--accent);color:var(--accent);background:rgba(0,212,170,0.07)">'+n+'</div>';
+  });
+  h+='</div><div style="text-align:center;color:var(--text3);font-size:12px;margin:8px 0">\u2193 Routes to Microservices \u2193</div><div class="arch-flow">';
+  [{n:"\u{1F4DA} Learning",c:"--accent"},{n:"\u{1F680} Deploy",c:"--blue"},{n:"\u{1F527} Troubleshoot",c:"--red"},{n:"\u{1F3AF} Interview",c:"--purple"},{n:"\u{1F4CA} Analyzer",c:"--orange"},{n:"\u2728 Expander",c:"--yellow"},{n:"\u{1F510} Config",c:"--green"},{n:"\u{1F4DD} DocGen",c:"--pink"}].forEach(function(s){
+    h+='<div class="arch-node" style="border-color:var('+s.c+');color:var('+s.c+');background:rgba(0,212,170,0.04)">'+s.n+'</div>';
+  });
+  h+='</div><div style="text-align:center;color:var(--text3);font-size:12px;margin:8px 0">\u2193 Shared Services \u2193</div><div class="arch-flow">';
+  [{n:"\u{1F916} AI/LLM (Ollama)",c:"--purple"},{n:"\u{1F5C4}\uFE0F PostgreSQL",c:"--blue"},{n:"\u26A1 Redis",c:"--red"},{n:"\u{1F50D} Elasticsearch",c:"--yellow"},{n:"\u{1F4E8} Kafka",c:"--orange"},{n:"\u{1F4C8} Prometheus",c:"--green"}].forEach(function(s){
+    h+='<div class="arch-node" style="border-color:var('+s.c+');color:var('+s.c+');background:rgba(0,212,170,0.04)">'+s.n+'</div>';
+  });
+  h+='</div></div>';
+  // Pricing
+  h+='<h3 style="font-size:16px;margin:24px 0 16px">\u{1F4B3} Pricing Tiers</h3><div class="grid grid-4">';
+  pricing.forEach(function(t){
+    h+='<div class="card'+(t.tier==='Pro'?' card-premium':'')+'"><div style="font-size:11px;color:'+t.color+';font-weight:600;text-transform:uppercase;letter-spacing:1px">'+t.tier+'</div><div style="font-family:JetBrains Mono,monospace;font-size:28px;font-weight:700;color:'+t.color+';margin:8px 0">'+t.price+'</div>';
+    t.features.forEach(function(f){h+='<div style="font-size:12px;color:var(--text2);padding:3px 0">\u2713 '+f+'</div>'});
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<div class="footer"><span>Santhira DevOps Master Platform v2.0</span><span>Built by Rajkumar Madhu \u00b7 \u00a9 2026</span></div></div>';
+  return h;
+};
+
+afterRender.overview=function(){
+  // Animate counters
+  document.querySelectorAll('.counter').forEach(function(el){
+    var target=parseInt(el.getAttribute('data-target'));
+    if(target)animateCounter(el,target,'+');
+  });
+  // Charts
+  requestAnimationFrame(function(){
+    setTimeout(function(){
+      var c1=document.getElementById('chart-growth');
+      if(c1&&c1.getContext){
+        destroyChart('growth');
+        chartInstances.growth=new Chart(c1.getContext('2d'),{type:'line',data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],datasets:[{label:'Users',data:[120,280,520,890,1450,2100,3200,4800,6500,8900,12000,15000],borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,0.1)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#00d4aa'},{label:'Active',data:[80,180,350,600,980,1500,2300,3500,4800,6700,9200,11500],borderColor:'#4da6ff',backgroundColor:'rgba(77,166,255,0.05)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#4da6ff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}},scales:{x:{ticks:{font:{size:10}},grid:{color:'rgba(30,42,63,0.5)'}},y:{ticks:{font:{size:10}},grid:{color:'rgba(30,42,63,0.5)'}}}}});
+      }
+      var c2=document.getElementById('chart-modules');
+      if(c2&&c2.getContext){
+        destroyChart('modules');
+        chartInstances.modules=new Chart(c2.getContext('2d'),{type:'doughnut',data:{labels:['Learning','Deploy','Troubleshoot','Interview','Analyzer','Expander','Config','Arch'],datasets:[{data:[25,18,20,15,8,5,6,3],backgroundColor:['#00d4aa','#4da6ff','#f87171','#a78bfa','#fb923c','#fbbf24','#34d399','#f472b6'],borderColor:'#0a0e17',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:10},padding:8}}}}});
+      }
+    },200);
+  });
+};
+</script>

@@ -1,0 +1,16 @@
+<script>
+// ========== INIT ==========
+renderNav();
+renderPage('overview');
+
+// Welcome toast
+setTimeout(function(){
+  var t=document.createElement('div');
+  t.className='toast';
+  t.innerHTML='\u26A1 <strong>Welcome to Santhira</strong> \u2014 DevOps Master Platform v2.0';
+  document.body.appendChild(t);
+  setTimeout(function(){if(t.parentNode)t.remove()},4000);
+},800);
+</script>
+</body>
+</html>

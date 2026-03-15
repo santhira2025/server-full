@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whatsapp-agent-config
+  namespace: whatsapp-agent
+data:
+  # --- App ---
+  APP_NAME: "WhatsApp AI Sales Agent"
+  APP_ENV: "production"
+  APP_PORT: "8000"
+  APP_HOST: "0.0.0.0"
+
+  # --- WhatsApp ---
+  WHATSAPP_PROVIDER: "twilio"
+  WHATSAPP_PHONE_NUMBER_ID: "9176772077"
+  WHATSAPP_BUSINESS_ACCOUNT_ID: "your_business_account_id"
+  TWILIO_PHONE_NUMBER: "whatsapp:+14155238886"
+
+  # --- AI ---
+  AI_MODEL: "claude-sonnet-4-6"
+  OPENAI_MODEL: "gpt-4o"
+
+  # --- Database ---
+  # Hostname of the postgres-service in the same namespace
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_NAME: "whatsapp_agent"
+  DB_USER: "postgres"
+
+  # --- Business ---
+  BUSINESS_NAME: "Finspot"
+  BUSINESS_DESCRIPTION: "Financial technology solutions and services"
+  BUSINESS_WEBSITE: "https://finspot.in"
+  CURRENCY: "INR"
+  TIMEZONE: "Asia/Kolkata"
+  WEBHOOK_URL: "https://argus.watsapp.santhira.com/api/webhook"

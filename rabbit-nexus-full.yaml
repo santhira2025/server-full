@@ -1,0 +1,517 @@
+---
+# ============================================================
+# RabbitNexus — Complete Kubernetes Deployment
+# Enterprise RabbitMQ Operations Intelligence Platform
+# Author: Santhira (Rajkumar Madhu)
+# ============================================================
+
+# --- Namespace ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rabbit-nexus
+  labels:
+    app.kubernetes.io/name: rabbit-nexus
+    app.kubernetes.io/part-of: santhira-platform
+
+---
+# --- ConfigMap ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbit-nexus-config
+  namespace: rabbit-nexus
+data:
+  RABBITMQ_HOST: "rabbitmq.rabbit-nexus.svc.cluster.local"
+  RABBITMQ_MANAGEMENT_PORT: "15672"
+  RABBITMQ_AMQP_PORT: "5672"
+  MCP_TRANSPORT: "streamable_http"
+  MCP_PORT: "8001"
+
+---
+# --- RabbitMQ ConfigMap ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-config
+  namespace: rabbit-nexus
+data:
+  rabbitmq.conf: |
+    ## Cluster formation
+    cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+    cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+    cluster_formation.k8s.address_type = hostname
+    cluster_formation.k8s.service_name = rabbitmq-headless
+    cluster_formation.node_cleanup.interval = 30
+    cluster_formation.node_cleanup.only_log_warning = true
+
+    ## Memory & Disk
+    vm_memory_high_watermark.relative = 0.7
+    disk_free_limit.absolute = 2GB
+
+    ## Management
+    management.tcp.port = 15672
+    management.cors.allow_origins.1 = *
+
+    ## Prometheus
+    prometheus.tcp.port = 15692
+
+    ## Queue defaults
+    default_vhost = /
+    default_user = admin
+    default_pass = CHANGE_ME_PRODUCTION
+
+    ## Logging
+    log.console = true
+    log.console.level = info
+
+  enabled_plugins: |
+    [rabbitmq_management, rabbitmq_prometheus, rabbitmq_peer_discovery_k8s, rabbitmq_shovel, rabbitmq_shovel_management].
+
+---
+# --- Secrets ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbit-nexus-secrets
+  namespace: rabbit-nexus
+type: Opaque
+stringData:
+  RABBITMQ_DEFAULT_USER: "admin"
+  RABBITMQ_DEFAULT_PASS: "CHANGE_ME_PRODUCTION"
+  RABBITMQ_ERLANG_COOKIE: "SANTHIRA_RABBITMQ_CLUSTER_SECRET"
+
+---
+# --- RBAC for K8s peer discovery ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rabbitmq
+  namespace: rabbit-nexus
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rabbitmq-peer-discovery
+  namespace: rabbit-nexus
+rules:
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rabbitmq-peer-discovery
+  namespace: rabbit-nexus
+subjects:
+- kind: ServiceAccount
+  name: rabbitmq
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rabbitmq-peer-discovery
+
+---
+# --- RabbitMQ StatefulSet (3-node cluster) ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: rabbit-nexus
+  labels:
+    app: rabbitmq
+spec:
+  serviceName: rabbitmq-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "15692"
+    spec:
+      serviceAccountName: rabbitmq
+      terminationGracePeriodSeconds: 120
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3.13-management-alpine
+        ports:
+        - containerPort: 5672
+          name: amqp
+        - containerPort: 15672
+          name: management
+        - containerPort: 15692
+          name: prometheus
+        - containerPort: 4369
+          name: epmd
+        - containerPort: 25672
+          name: clustering
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          valueFrom:
+            secretKeyRef:
+              name: rabbit-nexus-secrets
+              key: RABBITMQ_DEFAULT_USER
+        - name: RABBITMQ_DEFAULT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: rabbit-nexus-secrets
+              key: RABBITMQ_DEFAULT_PASS
+        - name: RABBITMQ_ERLANG_COOKIE
+          valueFrom:
+            secretKeyRef:
+              name: rabbit-nexus-secrets
+              key: RABBITMQ_ERLANG_COOKIE
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: RABBITMQ_NODENAME
+          value: "rabbit@$(MY_POD_NAME).rabbitmq-headless.rabbit-nexus.svc.cluster.local"
+        - name: RABBITMQ_USE_LONGNAME
+          value: "true"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        readinessProbe:
+          exec:
+            command: ["rabbitmq-diagnostics", "check_running"]
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 10
+        livenessProbe:
+          exec:
+            command: ["rabbitmq-diagnostics", "check_port_connectivity"]
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        volumeMounts:
+        - name: rabbitmq-data
+          mountPath: /var/lib/rabbitmq/mnesia
+        - name: rabbitmq-config
+          mountPath: /etc/rabbitmq/rabbitmq.conf
+          subPath: rabbitmq.conf
+        - name: rabbitmq-config
+          mountPath: /etc/rabbitmq/enabled_plugins
+          subPath: enabled_plugins
+      volumes:
+      - name: rabbitmq-config
+        configMap:
+          name: rabbitmq-config
+
+  volumeClaimTemplates:
+  - metadata:
+      name: rabbitmq-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+# --- RabbitMQ Headless Service (for clustering) ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-headless
+  namespace: rabbit-nexus
+spec:
+  clusterIP: None
+  ports:
+  - port: 5672
+    name: amqp
+  - port: 15672
+    name: management
+  - port: 4369
+    name: epmd
+  - port: 25672
+    name: clustering
+  selector:
+    app: rabbitmq
+
+---
+# --- RabbitMQ Client Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: rabbit-nexus
+  labels:
+    app: rabbitmq
+spec:
+  ports:
+  - port: 5672
+    targetPort: 5672
+    name: amqp
+  - port: 15672
+    targetPort: 15672
+    name: management
+  - port: 15692
+    targetPort: 15692
+    name: prometheus
+  selector:
+    app: rabbitmq
+  type: ClusterIP
+
+---
+# --- RabbitNexus MCP Server Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbit-nexus-mcp
+  namespace: rabbit-nexus
+  labels:
+    app: rabbit-nexus-mcp
+    component: mcp-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rabbit-nexus-mcp
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: rabbit-nexus-mcp
+        component: mcp-server
+    spec:
+      containers:
+      - name: mcp-server
+        image: santhira/rabbit-nexus-mcp:latest
+        ports:
+        - containerPort: 8001
+          name: http
+        envFrom:
+        - configMapRef:
+            name: rabbit-nexus-config
+        - secretRef:
+            name: rabbit-nexus-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 15
+          periodSeconds: 30
+
+---
+# --- MCP Server Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbit-nexus-mcp
+  namespace: rabbit-nexus
+spec:
+  ports:
+  - port: 8001
+    targetPort: 8001
+    name: http
+  selector:
+    app: rabbit-nexus-mcp
+  type: ClusterIP
+
+---
+# --- Ingress ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rabbit-nexus-ingress
+  namespace: rabbit-nexus
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - rabbit-nexus.santhira.com
+    secretName: rabbit-nexus-tls
+  rules:
+  - host: rabbit-nexus.santhira.com
+    http:
+      paths:
+      - path: /mcp
+        pathType: Prefix
+        backend:
+          service:
+            name: rabbit-nexus-mcp
+            port:
+              number: 8001
+      - path: /rabbitmq
+        pathType: Prefix
+        backend:
+          service:
+            name: rabbitmq
+            port:
+              number: 15672
+
+---
+# --- HPA ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rabbit-nexus-mcp-hpa
+  namespace: rabbit-nexus
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rabbit-nexus-mcp
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+---
+# --- NetworkPolicy ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rabbit-nexus-network-policy
+  namespace: rabbit-nexus
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: rabbit-nexus
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: rabbit-nexus
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# --- ServiceMonitor ---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rabbitmq-monitor
+  namespace: rabbit-nexus
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: rabbitmq
+  endpoints:
+  - port: prometheus
+    interval: 15s
+    path: /metrics
+
+---
+# --- PrometheusRule Alerts ---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: rabbit-nexus-alerts
+  namespace: rabbit-nexus
+  labels:
+    release: prometheus
+spec:
+  groups:
+  - name: rabbitmq.rules
+    rules:
+    - alert: RabbitMQDown
+      expr: rabbitmq_identity_info == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "RabbitMQ node is down"
+
+    - alert: RabbitMQMemoryAlarm
+      expr: rabbitmq_alarms_memory_used_watermark == 1
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "RabbitMQ memory alarm active — publishers blocked"
+
+    - alert: RabbitMQDiskAlarm
+      expr: rabbitmq_alarms_free_disk_space_watermark == 1
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "RabbitMQ disk alarm active — publishers blocked"
+
+    - alert: RabbitMQQueueBacklog
+      expr: rabbitmq_queue_messages > 50000
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Queue {{ $labels.queue }} has {{ $value }} messages backlog"
+
+    - alert: RabbitMQNoConsumers
+      expr: rabbitmq_queue_consumers == 0 and rabbitmq_queue_messages > 0
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Queue {{ $labels.queue }} has messages but no consumers"
+
+    - alert: RabbitMQHighUnacked
+      expr: rabbitmq_queue_messages_unacked > 5000
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Queue {{ $labels.queue }} has {{ $value }} unacked messages"
+
+    - alert: RabbitMQClusterPartition
+      expr: rabbitmq_cluster_partitions > 0
+      for: 0m
+      labels:
+        severity: critical
+      annotations:
+        summary: "RabbitMQ cluster partition detected!"

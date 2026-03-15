@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+ARG MCP_SERVER=redis_nexus_mcp.py
+ARG PORT=8000
+
+LABEL maintainer="Santhira <rajkumar@santhira.com>"
+LABEL description="DevOps Nexus MCP Server"
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY *.py ./
+
+RUN adduser --disabled-password --gecos '' appuser
+USER appuser
+
+ENV MCP_PORT=${PORT}
+EXPOSE ${PORT}
+
+ENTRYPOINT ["python"]
+CMD ["${MCP_SERVER}", "--http", "--port=${MCP_PORT}"]

@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevOps Master Platform — Reference Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e17; --bg2: #0f1520; --bg3: #141b2a; --bg4: #1a2235;
+  --border: #1e2a3f; --border2: #2a3a55;
+  --text: #c8d6e5; --text2: #8899aa; --text3: #5a6a7a;
+  --accent: #00d4aa; --accent2: #00b894; --accent3: #004d3d;
+  --blue: #4da6ff; --blue2: #1a73e8; --blue3: #0d3b6e;
+  --purple: #a78bfa; --purple2: #7c3aed;
+  --orange: #fb923c; --orange2: #ea580c;
+  --red: #f87171; --red2: #dc2626;
+  --yellow: #fbbf24; --yellow2: #d97706;
+  --pink: #f472b6; --green: #34d399;
+  --card: rgba(20,27,42,0.8); --glass: rgba(255,255,255,0.03);
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --radius: 12px; --radius2: 8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+::-webkit-scrollbar { width:6px; } ::-webkit-scrollbar-track { background:var(--bg2); } ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
+
+/* Layout */
+.app { display:flex; height:100vh; }
+.sidebar { width:260px; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; overflow-y:auto; }
+.main { flex:1; overflow-y:auto; padding:0; }
+.logo { padding:20px 20px 16px; border-bottom:1px solid var(--border); }
+.logo h1 { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--accent); letter-spacing:1px; }
+.logo p { font-size:11px; color:var(--text3); margin-top:4px; }
+
+/* Nav */
+.nav { padding:12px 8px; flex:1; }
+.nav-section { margin-bottom:16px; }
+.nav-section-title { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text3); padding:4px 12px 8px; font-weight:600; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:8px 12px; border-radius:var(--radius2); cursor:pointer; transition:all .2s; font-size:13px; color:var(--text2); }
+.nav-item:hover { background:var(--glass); color:var(--text); }
+.nav-item.active { background:linear-gradient(135deg,var(--accent3),rgba(0,212,170,0.1)); color:var(--accent); border:1px solid rgba(0,212,170,0.2); }
+.nav-icon { width:18px; text-align:center; font-size:14px; flex-shrink:0; }
+.nav-badge { margin-left:auto; font-size:10px; padding:2px 6px; border-radius:10px; background:var(--bg4); color:var(--text3); font-family:'JetBrains Mono',monospace; }
+
+/* Header */
+.page-header { padding:24px 32px 20px; border-bottom:1px solid var(--border); background:var(--bg2); position:sticky; top:0; z-index:10; backdrop-filter:blur(20px); }
+.page-header h2 { font-size:20px; font-weight:700; color:var(--text); }
+.page-header p { font-size:12px; color:var(--text3); margin-top:4px; }
+.header-stats { display:flex; gap:24px; margin-top:12px; }
+.header-stat { display:flex; align-items:baseline; gap:6px; }
+.header-stat .val { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; }
+.header-stat .label { font-size:11px; color:var(--text3); }
+
+/* Content */
+.content { padding:24px 32px; }
+
+/* Cards Grid */
+.grid { display:grid; gap:16px; }
+.grid-2 { grid-template-columns: repeat(2,1fr); }
+.grid-3 { grid-template-columns: repeat(3,1fr); }
+.grid-4 { grid-template-columns: repeat(4,1fr); }
+.grid-6 { grid-template-columns: repeat(6,1fr); }
+@media(max-width:1200px) { .grid-4,.grid-6 { grid-template-columns: repeat(3,1fr); } .grid-3 { grid-template-columns: repeat(2,1fr); } }
+
+/* Card */
+.card { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:20px; transition:all .3s; position:relative; overflow:hidden; }
+.card:hover { border-color:var(--border2); transform:translateY(-2px); box-shadow:var(--shadow); }
+.card-glow { position:absolute; top:-50%; left:-50%; width:200%; height:200%; background:radial-gradient(circle at center,rgba(0,212,170,0.03),transparent 70%); pointer-events:none; }
+.card-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:12px; }
+.card h3 { font-size:14px; font-weight:600; color:var(--text); margin-bottom:6px; }
+.card .desc { font-size:12px; color:var(--text2); line-height:1.5; }
+.card .metric { font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; margin-bottom:4px; }
+.card .sub { font-size:11px; color:var(--text3); }
+
+/* Module Cards */
+.module-card { cursor:pointer; }
+.module-card .module-icon { font-size:28px; margin-bottom:8px; }
+.module-card .module-tag { display:inline-block; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:600; margin-top:8px; }
+
+/* Tables */
+.table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { background:var(--bg4); color:var(--text2); font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:1px; padding:10px 14px; text-align:left; border-bottom:1px solid var(--border); position:sticky; top:0; }
+td { padding:10px 14px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:top; }
+tr:hover td { background:rgba(0,212,170,0.03); }
+tr:last-child td { border-bottom:none; }
+.cell-code { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--blue); }
+.cell-tag { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; }
+.tag-green { background:rgba(0,212,170,0.15); color:var(--accent); }
+.tag-blue { background:rgba(77,166,255,0.15); color:var(--blue); }
+.tag-purple { background:rgba(167,139,250,0.15); color:var(--purple); }
+.tag-orange { background:rgba(251,146,60,0.15); color:var(--orange); }
+.tag-red { background:rgba(248,113,113,0.15); color:var(--red); }
+.tag-yellow { background:rgba(251,191,36,0.15); color:var(--yellow); }
+.tag-pink { background:rgba(244,114,182,0.15); color:var(--pink); }
+
+/* Tabs */
+.tabs { display:flex; gap:2px; background:var(--bg3); border-radius:var(--radius2); padding:3px; margin-bottom:20px; overflow-x:auto; flex-wrap:nowrap; }
+.tab { padding:8px 16px; border-radius:6px; font-size:12px; font-weight:500; color:var(--text3); cursor:pointer; transition:all .2s; white-space:nowrap; }
+.tab:hover { color:var(--text); }
+.tab.active { background:var(--bg); color:var(--accent); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+
+/* Code Block */
+.code-block { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius2); padding:16px; font-family:'JetBrains Mono',monospace; font-size:12px; line-height:1.7; overflow-x:auto; color:var(--text2); white-space:pre; margin:12px 0; }
+.code-title { font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; font-weight:600; }
+
+/* Search */
+.search-box { position:relative; margin-bottom:20px; }
+.search-box input { width:100%; padding:12px 16px 12px 40px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius2); color:var(--text); font-size:13px; outline:none; font-family:'DM Sans',sans-serif; }
+.search-box input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,212,170,0.1); }
+.search-box .search-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--text3); font-size:14px; }
+
+/* Error Flow */
+.flow-step { display:flex; gap:16px; padding:16px; background:var(--bg3); border-radius:var(--radius2); margin-bottom:8px; border-left:3px solid; }
+.flow-step .step-num { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.flow-step .step-content h4 { font-size:13px; font-weight:600; margin-bottom:4px; }
+.flow-step .step-content p { font-size:12px; color:var(--text2); line-height:1.5; }
+
+/* Badges / Pills */
+.pill { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+
+/* Architecture Diagram */
+.arch-flow { display:flex; flex-wrap:wrap; gap:12px; justify-content:center; padding:20px; }
+.arch-node { padding:10px 16px; border-radius:var(--radius2); border:1px solid; font-size:11px; font-weight:600; text-align:center; min-width:100px; position:relative; }
+.arch-arrow { color:var(--text3); font-size:18px; display:flex; align-items:center; }
+
+/* Stat Bar */
+.stat-bar { display:flex; align-items:center; gap:10px; margin:6px 0; }
+.stat-bar-fill { height:6px; border-radius:3px; background:linear-gradient(90deg,var(--accent),var(--blue)); }
+.stat-bar-track { flex:1; height:6px; border-radius:3px; background:var(--bg4); overflow:hidden; }
+.stat-bar-label { font-size:11px; color:var(--text3); min-width:40px; text-align:right; font-family:'JetBrains Mono',monospace; }
+
+/* Animation */
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.animate { animation:fadeIn .4s ease forwards; }
+.delay-1 { animation-delay:.05s; opacity:0; }
+.delay-2 { animation-delay:.1s; opacity:0; }
+.delay-3 { animation-delay:.15s; opacity:0; }
+.delay-4 { animation-delay:.2s; opacity:0; }
+
+/* Expand section */
+.expand-section { margin-bottom:16px; }
+.expand-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius2); cursor:pointer; }
+.expand-header:hover { border-color:var(--border2); }
+.expand-header h4 { font-size:13px; font-weight:600; }
+.expand-body { padding:16px; border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius2) var(--radius2); background:var(--bg); display:none; }
+.expand-body.open { display:block; }
+.chevron { transition:transform .2s; }
+.chevron.open { transform:rotate(180deg); }
+
+/* Responsive sidebar */
+.sidebar-toggle { display:none; position:fixed; top:12px; left:12px; z-index:100; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:8px 12px; color:var(--text); cursor:pointer; font-size:16px; }
+@media(max-width:900px) {
+  .sidebar { position:fixed; left:-260px; top:0; bottom:0; z-index:50; transition:left .3s; }
+  .sidebar.open { left:0; }
+  .sidebar-toggle { display:block; }
+  .content { padding:24px 16px; }
+  .grid-2,.grid-3,.grid-4,.grid-6 { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+<div class="app">
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <h1>⚡ DEVOPS MASTER</h1>
+    <p>Enterprise SaaS Platform v1.0</p>
+  </div>
+  <nav class="nav" id="nav"></nav>
+  <div style="padding:16px;border-top:1px solid var(--border)">
+    <div style="font-size:11px;color:var(--text3)">Santhira · Feb 2026</div>
+    <div style="font-size:10px;color:var(--text3);margin-top:2px">Rajkumar Madhu, Founder & CTO</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="main"></div>
+</div>
+
+<script>
+// ======================== DATA ========================
+const NAV = [
+  { section:"Platform", items:[
+    {id:"overview",icon:"🏠",label:"Overview",badge:""},
+    {id:"architecture",icon:"🏗️",label:"Architecture",badge:"16"},
+    {id:"techstack",icon:"⚙️",label:"Tech Stack",badge:""},
+  ]},
+  { section:"Core Modules", items:[
+    {id:"learning",icon:"📚",label:"Learning Engine",badge:"15"},
+    {id:"deploy",icon:"🚀",label:"Deployment Engine",badge:"100+"},
+    {id:"troubleshoot",icon:"🔧",label:"Troubleshooter AI",badge:"10K+"},
+    {id:"interview",icon:"🎯",label:"Interview Engine",badge:"500+"},
+    {id:"analyzer",icon:"📊",label:"Log Analyzer",badge:""},
+    {id:"expander",icon:"✨",label:"5-Point Expander",badge:""},
+    {id:"configvault",icon:"🔐",label:"Config Vault",badge:"500+"},
+  ]},
+  { section:"Reference", items:[
+    {id:"api",icon:"🔌",label:"API Endpoints",badge:"43"},
+    {id:"errors",icon:"🐛",label:"Error Catalog",badge:"10K+"},
+    {id:"coverage",icon:"📈",label:"Content Matrix",badge:""},
+    {id:"roadmap",icon:"🗺️",label:"Roadmap & Revenue",badge:""},
+  ]},
+];
+
+// ======================== RENDER NAV ========================
+function renderNav() {
+  const nav = document.getElementById('nav');
+  nav.innerHTML = NAV.map(s => `
+    <div class="nav-section">
+      <div class="nav-section-title">${s.section}</div>
+      ${s.items.map(i => `
+        <div class="nav-item ${i.id==='overview'?'active':''}" data-page="${i.id}" onclick="goTo('${i.id}')">
+          <span class="nav-icon">${i.icon}</span>
+          <span>${i.label}</span>
+          ${i.badge?`<span class="nav-badge">${i.badge}</span>`:''}
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function goTo(id) {
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.querySelector(`[data-page="${id}"]`)?.classList.add('active');
+  document.querySelector('.sidebar').classList.remove('open');
+  renderPage(id);
+}
+
+// ======================== PAGES ========================
+const PAGES = {};
+
+// ---------- OVERVIEW ----------
+PAGES.overview = () => `
+<div class="page-header">
+  <h2>DevOps Master Platform</h2>
+  <p>Enterprise SaaS — Learning · Deployment · Operations · Troubleshooting · Interview Prep</p>
+  <div class="header-stats">
+    <div class="header-stat"><span class="val" style="color:var(--accent)">517</span><span class="label">Topics</span></div>
+    <div class="header-stat"><span class="val" style="color:var(--blue)">520+</span><span class="label">Configs</span></div>
+    <div class="header-stat"><span class="val" style="color:var(--red)">10K+</span><span class="label">Errors</span></div>
+    <div class="header-stat"><span class="val" style="color:var(--purple)">500+</span><span class="label">Interview Qs</span></div>
+    <div class="header-stat"><span class="val" style="color:var(--orange)">168</span><span class="label">Labs</span></div>
+    <div class="header-stat"><span class="val" style="color:var(--yellow)">8</span><span class="label">Modules</span></div>
+  </div>
+</div>
+<div class="content">
+  <div class="grid grid-4" style="margin-bottom:24px">
+    ${[
+      {icon:"📚",title:"Learning Engine",desc:"15 learning paths, 500+ hrs, adaptive AI, real labs",color:"var(--accent)",tag:"Core"},
+      {icon:"🚀",title:"Deployment Engine",desc:"100+ tools, one-click deploy, Helm/Terraform templates",color:"var(--blue)",tag:"Core"},
+      {icon:"🔧",title:"Troubleshooter AI",desc:"10,000+ errors, instant RCA, step-by-step fixes",color:"var(--red)",tag:"AI"},
+      {icon:"🎯",title:"Interview Engine",desc:"500+ Q&A, mock AI interviews, scoring & feedback",color:"var(--purple)",tag:"Core"},
+      {icon:"📊",title:"Log Analyzer",desc:"Upload logs → AI analysis, anomaly detection, reports",color:"var(--orange)",tag:"AI"},
+      {icon:"✨",title:"5-Point Expander",desc:"5 keywords → complete docs with configs & diagrams",color:"var(--yellow)",tag:"AI"},
+      {icon:"🔐",title:"Config Vault",desc:"500+ production configs, env-specific, versioned",color:"var(--green)",tag:"Core"},
+      {icon:"🏗️",title:"Arch Generator",desc:"Describe → full architecture with implementation guide",color:"var(--pink)",tag:"AI"},
+    ].map((m,i) => `
+      <div class="card module-card animate delay-${i%4+1}" onclick="goTo('${['learning','deploy','troubleshoot','interview','analyzer','expander','configvault','architecture'][i]}')">
+        <div class="card-glow"></div>
+        <div class="module-icon">${m.icon}</div>
+        <h3>${m.title}</h3>
+        <div class="desc">${m.desc}</div>
+        <span class="module-tag" style="background:${m.color}22;color:${m.color}">${m.tag}</span>
+      </div>
+    `).join('')}
+  </div>
+
+  <h3 style="font-size:16px;margin-bottom:16px;color:var(--text)">Platform Architecture Flow</h3>
+  <div class="card" style="padding:24px">
+    <div class="arch-flow">
+      ${['👤 User','→','🌐 CDN/CloudFlare','→','🔀 API Gateway (Kong)','→','🔑 Auth (Keycloak)'].map(n =>
+        n==='→'?'<div class="arch-arrow">→</div>':`<div class="arch-node" style="border-color:var(--accent);color:var(--accent);background:var(--accent)11">${n}</div>`
+      ).join('')}
+    </div>
+    <div style="text-align:center;color:var(--text3);font-size:12px;margin:8px 0">↓ Routes to Microservices ↓</div>
+    <div class="arch-flow">
+      ${[
+        {n:'📚 Learning',c:'--accent'},{n:'🚀 Deploy',c:'--blue'},{n:'🔧 Troubleshoot',c:'--red'},
+        {n:'🎯 Interview',c:'--purple'},{n:'📊 Analyzer',c:'--orange'},{n:'✨ Expander',c:'--yellow'},
+        {n:'🔐 Config',c:'--green'},{n:'📝 DocGen',c:'--pink'}
+      ].map(s => `<div class="arch-node" style="border-color:var(${s.c});color:var(${s.c});background:var(${s.c})11">${s.n}</div>`).join('')}
+    </div>
+    <div style="text-align:center;color:var(--text3);font-size:12px;margin:8px 0">↓ Shared Services ↓</div>
+    <div class="arch-flow">
+      ${[
+        {n:'🤖 AI/LLM (Ollama)',c:'--purple'},{n:'🗄️ PostgreSQL',c:'--blue'},{n:'⚡ Redis',c:'--red'},
+        {n:'🔍 Elasticsearch',c:'--yellow'},{n:'📨 Kafka',c:'--orange'},{n:'📈 Prometheus',c:'--green'}
+      ].map(s => `<div class="arch-node" style="border-color:var(${s.c});color:var(${s.c});background:var(${s.c})11">${s.n}</div>`).join('')}
+    </div>
+  </div>
+
+  <h3 style="font-size:16px;margin:24px 0 16px;color:var(--text)">Pricing Tiers</h3>
+  <div class="grid grid-4">
+    ${[
+      {tier:"Free",price:"$0",features:["5 topics/day","Basic troubleshooter","10 Q&A/day","Community support"],color:"var(--text3)"},
+      {tier:"Pro",price:"$29/mo",features:["Unlimited access","Full troubleshooter","All interview Q&A","Labs 2hr/day","Config vault"],color:"var(--accent)"},
+      {tier:"Team",price:"$19/user/mo",features:["Everything in Pro","Team dashboards","Skill assessments","Custom paths","SSO"],color:"var(--blue)"},
+      {tier:"Enterprise",price:"Custom",features:["Everything","Private deploy","Custom integrations","SLA","On-prem option"],color:"var(--purple)"},
+    ].map(t => `
+      <div class="card">
+        <div style="font-size:11px;color:${t.color};font-weight:600;text-transform:uppercase;letter-spacing:1px">${t.tier}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:${t.color};margin:8px 0">${t.price}</div>
+        ${t.features.map(f=>`<div style="font-size:12px;color:var(--text2);padding:3px 0">✓ ${f}</div>`).join('')}
+      </div>
+    `).join('')}
+  </div>
+</div>`;
+
+// ---------- ARCHITECTURE ----------
+PAGES.architecture = () => `
+<div class="page-header">
+  <h2>🏗️ Platform Architecture</h2>
+  <p>16 microservices · Kubernetes · Event-driven · AI-powered</p>
+</div>
+<div class="content">
+  <div class="tabs" id="arch-tabs">
+    ${['Microservices','K8s Namespaces','Database Schema','Infrastructure'].map((t,i) =>
+      `<div class="tab ${i===0?'active':''}" onclick="switchTab('arch',${i})">${t}</div>`
+    ).join('')}
+  </div>
+  <div id="arch-panel-0">
+    <div class="table-wrap">
+    <table><thead><tr><th>Component</th><th>Technology</th><th>Purpose</th></tr></thead><tbody>
+    ${[
+      ['Frontend','React 18 + Next.js 14','SPA, Monaco Editor, Mermaid.js, xterm.js, WebSocket'],
+      ['API Gateway','Kong / Traefik','Rate limiting, auth, routing, API versioning'],
+      ['Auth Service','Keycloak','OAuth2, OIDC, SAML, SSO, RBAC, MFA, JWT'],
+      ['Learning Engine','Go','Learning paths, progress tracking, spaced repetition'],
+      ['Lab Provisioner','Go + k3s','Isolated per-user K8s sandboxes, TTL cleanup'],
+      ['Deployment Engine','Python/FastAPI','Template rendering, Helm/TF execution, GitOps'],
+      ['Troubleshoot AI','Python/LangChain + Ollama','Error parsing, RCA, knowledge graph, LLM inference'],
+      ['Interview Engine','Python/FastAPI','Q&A database, mock interview AI, scoring'],
+      ['Log Analyzer','Python + ES','Log ingestion, pattern detection, anomaly scoring'],
+      ['Doc Generator','Python','Template engine, diagram + config rendering, export'],
+      ['5-Point Expander','Python/LangChain','Topic expansion, content generation, diagrams'],
+      ['Config Vault','Go','Config storage, versioning, env templating'],
+      ['AI/ML Service','Python + Ollama/vLLM','LLM inference, embeddings, classification'],
+      ['Search','Elasticsearch/Meilisearch','Full-text + semantic search'],
+      ['Analytics','ClickHouse','User analytics, learning metrics, billing'],
+      ['Notifications','Go','Email (SES), Slack, Teams, PagerDuty'],
+    ].map((r,i)=>`<tr><td><strong>${r[0]}</strong></td><td><span class="cell-code">${r[1]}</span></td><td>${r[2]}</td></tr>`).join('')}
+    </tbody></table>
+    </div>
+  </div>
+  <div id="arch-panel-1" style="display:none">
+    <div class="table-wrap">
+    <table><thead><tr><th>Namespace</th><th>Services</th><th>Resources</th></tr></thead><tbody>
+    ${[
+      ['devops-platform','API Gateway, Frontend, Auth','4 pods, 2vCPU/4GB'],
+      ['learning-engine','Learning API, Progress DB, Worker','3 pods, 1vCPU/2GB'],
+      ['lab-system','Lab Controller, k3s Provisioner, Cleanup','2 pods + dynamic'],
+      ['deployment-engine','Template Renderer, Helm/TF Executor','3 pods, 2vCPU/4GB'],
+      ['troubleshoot-ai','Error Parser, RCA, Knowledge Graph, LLM','4 pods, 4vCPU/8GB+GPU'],
+      ['interview-engine','Q&A API, Scenario Gen, Mock AI','3 pods, 2vCPU/4GB'],
+      ['log-analyzer','Ingestion, Pattern Detector, Report Gen','3 pods, 2vCPU/4GB'],
+      ['doc-generator','Template Engine, Diagram, Export','2 pods, 1vCPU/2GB'],
+      ['config-vault','Config API, Version Store, Secrets','2 pods, 1vCPU/2GB'],
+      ['data-layer','PostgreSQL HA, Redis, ES, ClickHouse','StatefulSets + PVCs'],
+      ['messaging','Kafka 3-broker, NATS, Redis Streams','StatefulSets'],
+      ['monitoring','Prometheus, Grafana, Loki, Tempo, OTel','DaemonSet + StatefulSets'],
+      ['ai-inference','Ollama/vLLM, Embeddings, Reranker','GPU nodes, 2+ replicas'],
+    ].map(r=>`<tr><td><span class="cell-code">${r[0]}</span></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}
+    </tbody></table>
+    </div>
+  </div>
+  <div id="arch-panel-2" style="display:none">
+    <div class="table-wrap">
+    <table><thead><tr><th>Table</th><th>Key Columns</th><th>Engine</th></tr></thead><tbody>
+    ${[
+      ['users','id, email, name, role, org_id, subscription, created_at','PostgreSQL'],
+      ['organizations','id, name, plan, seats, billing_email, sso_config','PostgreSQL'],
+      ['learning_paths','id, title, category, difficulty, topics[], hours','PostgreSQL'],
+      ['user_progress','id, user_id, path_id, topic_id, status, score','PostgreSQL'],
+      ['topics','id, category, title, content_md, configs_json, diagrams[]','PostgreSQL'],
+      ['interview_questions','id, topic_id, question, answer, difficulty, type','PostgreSQL'],
+      ['error_catalog','id, tool, pattern, root_cause, fix_steps[], prevention','PostgreSQL'],
+      ['deployment_templates','id, tool, type, template, variables[], defaults','PostgreSQL'],
+      ['configurations','id, tool, environment, config_yaml, best_practices[]','PostgreSQL'],
+      ['lab_sessions','id, user_id, cluster_id, status, expires_at','PostgreSQL'],
+      ['log_reports','id, user_id, analysis_json, anomalies[]','PostgreSQL'],
+      ['search_index','id, entity_type, title, content, embedding vector(1536)','pgvector'],
+      ['analytics_events','timestamp, user_id, event_type, properties','ClickHouse'],
+    ].map(r=>`<tr><td><span class="cell-code">${r[0]}</span></td><td style="font-size:12px">${r[1]}</td><td><span class="cell-tag tag-blue">${r[2]}</span></td></tr>`).join('')}
+    </tbody></table>
+    </div>
+  </div>
+  <div id="arch-panel-3" style="display:none">
+    <h3 style="font-size:15px;margin-bottom:16px">Infrastructure Cost Estimate (Self-Hosted)</h3>
+    <div class="table-wrap">
+    <table><thead><tr><th>Resource</th><th>Specification</th><th>Monthly Cost</th></tr></thead><tbody>
+    ${[
+      ['K8s Cluster','3 master + 6 worker (m5.xlarge)','$1,200–$2,400'],
+      ['GPU Nodes','2× g5.xlarge (NVIDIA A10G)','$800–$1,600'],
+      ['PostgreSQL HA','db.r6g.xlarge Multi-AZ','$400–$800'],
+      ['Redis Cluster','3-node cache.r6g.large','$300–$600'],
+      ['Elasticsearch','3-node r6g.xlarge','$400–$800'],
+      ['Kafka 3-broker','m5.large instances','$300–$600'],
+      ['S3/MinIO + CDN','500GB–1TB','$65–$130'],
+      ['CI/CD + Misc','Runners, DNS, SSL','$110–$330'],
+    ].map(r=>`<tr><td><strong>${r[0]}</strong></td><td>${r[1]}</td><td style="font-family:'JetBrains Mono',monospace;color:var(--accent)">${r[2]}</td></tr>`).join('')}
+    <tr style="background:var(--bg4)"><td><strong>TOTAL</strong></td><td></td><td style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700">$3,575–$7,260/mo</td></tr>
+    </tbody></table>
+    </div>
+  </div>
+</div>`;
+
+// ---------- TECH STACK ----------
+PAGES.techstack = () => `
+<div class="page-header">
+  <h2>⚙️ Technology Stack</h2>
+  <p>Production-grade, self-hostable, cost-effective technologies</p>
+</div>
+<div class="content">
+  <div class="table-wrap">
+  <table><thead><tr><th>Layer</th><th>Technologies</th><th>Why Chosen</th></tr></thead><tbody>
+  ${[
+    ['Frontend','React 18, Next.js 14, TypeScript, Tailwind, shadcn/ui, Monaco Editor, xterm.js','SSR, type safety, rich editor, terminal'],
+    ['Backend (Perf)','Go 1.22','High throughput, low latency, K8s native'],
+    ['Backend (AI)','Python 3.12, FastAPI','ML ecosystem, LangChain, async'],
+    ['Backend (Realtime)','Node.js 20, WebSocket','Real-time labs, live updates'],
+    ['AI/LLM','Ollama, vLLM, LangChain, sentence-transformers, pgvector','Self-hosted, cost-effective, RAG'],
+    ['Primary DB','PostgreSQL 16 + Patroni HA','MVCC, JSON, pgvector, reliability'],
+    ['Cache','Redis 7 Cluster','Sessions, cache, pub/sub, streams'],
+    ['Analytics DB','ClickHouse','Columnar OLAP, fast aggregation'],
+    ['Search','Elasticsearch 8 / Meilisearch','Full-text + semantic search'],
+    ['Message Queue','Apache Kafka (Strimzi)','Event streaming, durability'],
+    ['Inter-Service','NATS','Lightweight, fast, request-reply'],
+    ['Object Storage','MinIO / AWS S3','S3-compatible, self-hostable'],
+    ['Container Runtime','containerd, K8s 1.30+','Industry standard, stable'],
+    ['CI/CD','GitHub Actions + ArgoCD + Tekton','GitOps, pipeline flexibility'],
+    ['Registry','Harbor','Scanning, replication, RBAC'],
+    ['IaC','Terraform + Ansible + Crossplane','Multi-cloud, K8s-native'],
+    ['Monitoring','Prometheus + Grafana + Loki + Tempo + OTel','Full observability stack'],
+    ['Auth','Keycloak','OIDC, SAML, SSO, self-hosted'],
+    ['API Gateway','Kong / Traefik','Rate limiting, auth, routing'],
+    ['CDN','Cloudflare / CloudFront','Global edge, DDoS, SSL'],
+    ['Lab Sandboxes','k3s + KubeVirt + Kata','Isolated, lightweight, secure'],
+  ].map(r=>`<tr><td><strong>${r[0]}</strong></td><td><span class="cell-code">${r[1]}</span></td><td style="font-size:12px;color:var(--text2)">${r[2]}</td></tr>`).join('')}
+  </tbody></table>
+  </div>
+</div>`;
+
+// ---------- LEARNING ENGINE ----------
+PAGES.learning = () => `
+<div class="page-header">
+  <h2>📚 Learning Engine</h2>
+  <p>15 learning paths · 517 topics · Adaptive AI · Real-time labs · Certification prep</p>
+</div>
+<div class="content">
+  <div class="tabs" id="learn-tabs">
+    ${['Learning Paths','Topic Structure','Lab System'].map((t,i) =>
+      `<div class="tab ${i===0?'active':''}" onclick="switchTab('learn',${i})">${t}</div>`
+    ).join('')}
+  </div>
+  <div id="learn-panel-0">
+    <div class="table-wrap">
+    <table><thead><tr><th>ID</th><th>Learning Path</th><th>Topics</th><th>Level</th><th>Hours</th></tr></thead><tbody>
+    ${[
+      ['LP-001','Linux Fundamentals → Advanced','Boot, FS, networking, security, scripting, systemd, kernel','Beginner→Expert','40'],
+      ['LP-002','Networking & Cloud Networking','OSI, TCP/IP, switching, routing, VPC, LB, DNS, VPN','Beginner→Expert','35'],
+      ['LP-003','Docker & Containers Deep Dive','Internals, Dockerfile, networking, storage, security, CI/CD','Beginner→Expert','30'],
+      ['LP-004','Kubernetes Mastery','Architecture, objects, networking, storage, Helm, GitOps','Beginner→Expert','60'],
+      ['LP-005','Terraform & IaC','HCL, state, modules, workspaces, testing, CI/CD','Beginner→Expert','30'],
+      ['LP-006','CI/CD & DevOps Practices','Pipelines, strategies, GitOps, testing, DORA, platform eng','Beginner→Expert','35'],
+      ['LP-007','AWS Cloud Architect','Compute, networking, storage, DB, security, architecture','Beginner→Expert','50'],
+      ['LP-008','Azure Cloud Engineer','VMs, AKS, networking, identity, storage, DevOps','Beginner→Expert','45'],
+      ['LP-009','GCP Cloud Engineer','Compute, GKE, networking, BigQuery, Vertex AI','Beginner→Expert','40'],
+      ['LP-010','Monitoring & Observability','Prometheus, Grafana, ELK, Loki, OTel, SLO/SLI, AIOps','Beginner→Expert','35'],
+      ['LP-011','Security & DevSecOps','SAST/DAST/SCA, container security, IaC scan, compliance','Beginner→Expert','30'],
+      ['LP-012','Databases for DevOps','PostgreSQL, MySQL, MongoDB, Redis, ES, replication, DR','Beginner→Expert','30'],
+      ['LP-013','Nginx & Web Servers','Config, reverse proxy, LB, SSL, caching, Ingress','Beginner→Expert','20'],
+      ['LP-014','AIOps & MLOps','Anomaly detection, RCA, ML pipelines, model serving, LLMOps','Intermediate→Expert','35'],
+      ['LP-015','Interview Preparation','Q&A, system design, scenarios, mock interviews','All Levels','∞'],
+    ].map(r=>`<tr><td><span class="cell-code">${r[0]}</span></td><td><strong>${r[1]}</strong></td><td style="font-size:11px;color:var(--text2)">${r[2]}</td><td><span class="cell-tag tag-green">${r[3]}</span></td><td style="font-family:'JetBrains Mono',monospace;color:var(--accent)">${r[4]}h</td></tr>`).join('')}
+    </tbody></table>
+    </div>
+  </div>
+  <div id="learn-panel-1" style="display:none">
+    <h3 style="font-size:15px;margin-bottom:16px">Every Topic Contains These 10 Components</h3>
+    <div class="grid grid-2">
+    ${[
+      {icon:'📖',t:'Concept Explanation',d:'Theory with analogies, diagrams, visual explanations',c:'--accent'},
+      {icon:'⚙️',t:'Configuration Details',d:'Production-ready configs with inline comments',c:'--blue'},
+      {icon:'🧪',t:'Hands-On Lab',d:'Sandboxed environment, guided tasks, validation',c:'--green'},
+      {icon:'🐛',t:'Errors & Fixes',d:'Top 10–20 errors with RCA, fix steps, prevention',c:'--red'},
+      {icon:'🎯',t:'Interview Questions',d:'10–30 Q&A: technical, scenario, design, troubleshoot',c:'--purple'},
+      {icon:'🏭',t:'Real-Time Scenarios',d:'3–5 production scenarios with walkthroughs',c:'--orange'},
+      {icon:'🗺️',t:'Architecture Diagrams',d:'Visual architecture, data flow, component interaction',c:'--yellow'},
+      {icon:'⚡',t:'Quick Reference',d:'Cheat sheet: commands, configs, troubleshooting shortcuts',c:'--pink'},
+      {icon:'📝',t:'Assessment Quiz',d:'10–20 MCQs + hands-on challenges for validation',c:'--accent'},
+      {icon:'🔗',t:'Related Topics',d:'Prerequisites and follow-up topics for continuous learning',c:'--blue'},
+    ].map(f=>`
+      <div class="card">
+        <div style="font-size:22px;margin-bottom:8px">${f.icon}</div>
+        <h3 style="color:var(${f.c})">${f.t}</h3>
+        <div class="desc">${f.d}</div>
+      </div>
+    `).join('')}
+    </div>
+  </div>
+  <div id="learn-panel-2" style="display:none">
+    <h3 style="font-size:15px;margin-bottom:16px">Lab Environment Architecture</h3>
+    <div class="card" style="padding:20px">
+      <div class="code-title">Lab Provisioning Flow</div>
+      <div class="code-block">User clicks "Start Lab"
+  → API creates lab_session record (status: provisioning)
+  → Lab Controller provisions k3s cluster (isolated namespace)
+  → Installs required tools (kubectl, helm, terraform, etc.)
+  → Seeds lab with scenario data (pods, services, broken configs)
+  → Exposes web terminal via xterm.js + WebSocket
+  → User completes tasks in browser terminal
+  → Validation engine checks task completion
+  → Auto-cleanup after TTL (2 hours) or manual stop
+  → Lab results saved to user_progress</div>
+    </div>
+    <div class="grid grid-3" style="margin-top:16px">
+      ${[
+        {t:'Isolation',d:'Each user gets dedicated k3s namespace with resource limits',c:'--accent'},
+        {t:'Pre-seeded',d:'Labs come with broken configs, failing pods, misconfigured services',c:'--red'},
+        {t:'Validation',d:'Automated task checking: verify pods running, service reachable, config correct',c:'--green'},
+      ].map(f=>`<div class="card"><h3 style="color:var(${f.c})">${f.t}</h3><div class="desc">${f.d}</div></div>`).join('')}
+    </div>
+  </div>
+</div>`;
+
+// ---------- DEPLOYMENT ENGINE ----------
+PAGES.deploy = () => `
+<div class="page-header">
+  <h2>🚀 Deployment Engine</h2>
+  <p>100+ tools · One-click deploy · Helm/Terraform templates · Environment profiles</p>
+</div>
+<div class="content">
+  <div class="search-box"><span class="search-icon">🔍</span><input placeholder="Search deployment templates..." oninput="filterTable(this,'deploy-table')"></div>
+  <div class="table-wrap">
+  <table id="deploy-table"><thead><tr><th>Category</th><th>Tools Available</th><th>Type</th></tr></thead><tbody>
+  ${[
+    ['Monitoring','Prometheus · Grafana · Alertmanager · Loki · Tempo · Mimir · VictoriaMetrics · Thanos · OTel Collector · kube-state-metrics','tag-green','Helm+TF'],
+    ['Logging','ELK Stack · Fluentd · Fluent Bit · Graylog · Loki+Promtail','tag-blue','Helm+Compose'],
+    ['CI/CD','Jenkins · GitLab Runner · ArgoCD · FluxCD · Tekton · Drone CI · Woodpecker','tag-purple','Helm+TF'],
+    ['Databases','PostgreSQL HA (Patroni) · MySQL (Percona) · MongoDB · Redis Cluster · ES · ClickHouse','tag-orange','Helm'],
+    ['Message Queues','Kafka (Strimzi) · RabbitMQ · NATS · Redis Streams · Apache Pulsar','tag-yellow','Helm'],
+    ['Security','Vault · cert-manager · Falco · Trivy · OPA Gatekeeper · Kyverno · External Secrets','tag-red','Helm'],
+    ['Service Mesh','Istio · Linkerd · Consul Connect · Kuma','tag-purple','Helm'],
+    ['API Gateway','Kong · Traefik · APISIX · Ambassador/Emissary','tag-green','Helm'],
+    ['Registry','Harbor · Nexus · Docker Registry','tag-blue','Helm+TF'],
+    ['Ingress','Nginx Ingress · Traefik · ALB Ingress · Contour','tag-green','Helm'],
+    ['Secrets Mgmt','Vault · Sealed Secrets · External Secrets · SOPS','tag-red','Helm'],
+    ['Backup & DR','Velero · Kasten K10 · etcd backup','tag-orange','Helm+TF'],
+    ['AI/ML','Ollama · vLLM · MLflow · Kubeflow · Seldon Core · KServe · Triton','tag-pink','Helm+TF'],
+    ['Identity','Keycloak · Dex · OAuth2 Proxy · Authelia','tag-purple','Helm'],
+  ].map(r=>`<tr><td><span class="cell-tag ${r[2]}">${r[0]}</span></td><td style="font-size:12px">${r[1]}</td><td><span class="cell-code">${r[3]}</span></td></tr>`).join('')}
+  </tbody></table>
+  </div>
+
+  <h3 style="font-size:15px;margin:24px 0 16px">Each Template Includes</h3>
+  <div class="grid grid-4">
+  ${[
+    {icon:'✅',t:'Prerequisites',d:'Validates cluster, resources, CRDs'},
+    {icon:'📄',t:'values.yaml',d:'All params with defaults + comments'},
+    {icon:'🌍',t:'Env Profiles',d:'dev / staging / prod variants'},
+    {icon:'🔒',t:'Security',d:'NetworkPolicies, RBAC, TLS, PSS'},
+    {icon:'📊',t:'Monitoring',d:'ServiceMonitor, Grafana dashboard, alerts'},
+    {icon:'💊',t:'Health Checks',d:'Liveness, readiness, startup probes'},
+    {icon:'⬆️',t:'Upgrade Guide',d:'Step-by-step upgrade + rollback'},
+    {icon:'🐛',t:'Troubleshooting',d:'Top 20 errors with RCA + fixes'},
+  ].map(f=>`<div class="card"><div style="font-size:20px;margin-bottom:6px">${f.icon}</div><h3>${f.t}</h3><div class="desc">${f.d}</div></div>`).join('')}
+  </div>
+</div>`;
+
+// ---------- TROUBLESHOOTER ----------
+PAGES.troubleshoot = () => `
+<div class="page-header">
+  <h2>🔧 Intelligent Troubleshooter</h2>
+  <p>10,000+ errors · AI-powered RCA · Step-by-step fixes · Prevention strategies</p>
+</div>
+<div class="content">
+  <div class="tabs" id="ts-tabs">
+    ${['How It Works','Error Catalog','Live Demo'].map((t,i) =>
+      `<div class="tab ${i===0?'active':''}" onclick="switchTab('ts',${i})">${t}</div>`
+    ).join('')}
+  </div>
+  <div id="ts-panel-0">
+    <div style="margin-bottom:20px">
+    ${[
+      {n:1,t:'Input',d:'User pastes error message, log snippet, or describes problem',c:'--accent'},
+      {n:2,t:'Parse',d:'AI extracts error code, tool, version, context, stack trace',c:'--blue'},
+      {n:3,t:'Classify',d:'ML classifies: config, networking, permissions, resources, version, state',c:'--purple'},
+      {n:4,t:'Match',d:'Searches 10,000+ error catalog + knowledge graph + LLM',c:'--orange'},
+      {n:5,t:'RCA',d:'Root cause analysis with confidence score and evidence chain',c:'--red'},
+      {n:6,t:'Fix Steps',d:'Ordered fix steps with exact commands and verification',c:'--green'},
+      {n:7,t:'Prevention',d:'Monitoring rules, config best practices, CI/CD checks',c:'--yellow'},
+      {n:8,t:'Learn',d:'Resolution feeds back into knowledge graph for improvement',c:'--pink'},
+    ].map(s=>`
+      <div class="flow-step" style="border-left-color:var(${s.c})">
+        <div class="step-num" style="background:var(${s.c})22;color:var(${s.c})">${s.n}</div>
+        <div class="step-content"><h4 style="color:var(${s.c})">${s.t}</h4><p>${s.d}</p></div>
+      </div>
+    `).join('')}
+    </div>
+  </div>
+  <div id="ts-panel-1" style="display:none">
+    <div class="search-box"><span class="search-icon">🔍</span><input placeholder="Search error catalog..." oninput="filterTable(this,'error-table')"></div>
+    <div class="table-wrap" style="max-height:600px;overflow-y:auto">
+    <table id="error-table"><thead><tr><th>Tool</th><th>Errors Covered</th><th>Count</th></tr></thead><tbody>
+    ${[
+      ['Kubernetes','CrashLoopBackOff · ImagePullBackOff · OOMKilled · Pending · Evicted · NotReady · DNS · PVC · RBAC · Ingress 502/503 · HPA flapping · etcd · cert expired · webhook · CNI · CSI · quota · StatefulSet · Job backoff · CronJob missed','30+'],
+      ['Docker','Won\'t start · image not found · port in use · volume permission · disk full · DNS · build cache · multi-stage · COPY failed · daemon crash · overlay2 · health check · compose · env vars · SIGTERM · zombie · PID 1','25+'],
+      ['Terraform','State lock · corruption · provider auth · already exists · dependency cycle · drift · module not found · variable error · import · tainted · backend · workspace · provider version','20+'],
+      ['AWS','IAM denied · STS expired · S3 policy · VPC exhaustion · SG limit · ALB 502/503 · Lambda timeout · RDS connections · EBS detach · EC2 limit · CFN rollback · R53 health · ECS placement · EKS scaling','25+'],
+      ['Linux','Disk full · permission denied · SSH refused · firewall · DNS · NTP · package deps · kernel panic · OOM · zombies · systemd · mount · LVM · iptables · SELinux · cron · logrotate','25+'],
+      ['Nginx','502 Bad Gateway · 504 Timeout · 413 Too Large · SSL handshake · upstream timeout · worker_connections · proxy_pass · location mismatch · rewrite loop · buffer · rate limit · WebSocket','18+'],
+      ['PostgreSQL','Connection refused · too many connections · deadlock · bloat · slow queries · replication lag · WAL · vacuum · index corruption · pg_hba · SSL · shared memory','18+'],
+      ['Prometheus','Scrape down · high cardinality · TSDB compaction · OOM · PromQL · recording rule · alert not firing · Alertmanager · remote write · service discovery · histogram explosion','15+'],
+      ['Redis','Connection refused · max memory · eviction · replication broken · cluster failure · slow log · persistence · sentinel failover · pub/sub overflow','12+'],
+      ['Elasticsearch','Cluster red/yellow · shard allocation · disk watermark · circuit breaker · slow queries · mapping explosion · JVM heap · ingest failure','12+'],
+      ['Azure','Entra ID · NSG · AKS scaling · App Service · Cosmos throttling · Key Vault · Firewall · ExpressRoute · Storage · VMSS','15+'],
+      ['GCP','IAM · GKE · Cloud Run · BigQuery slots · Cloud SQL · VPC firewall · NAT ports · GCS · Pub/Sub · Build timeout','12+'],
+    ].map(r=>`<tr><td><strong>${r[0]}</strong></td><td style="font-size:11px;color:var(--text2)">${r[1]}</td><td style="font-family:'JetBrains Mono',monospace;color:var(--accent)">${r[2]}</td></tr>`).join('')}
+    </tbody></table>
+    </div>
+  </div>
+  <div id="ts-panel-2" style="display:none">
+    <h3 style="font-size:15px;margin-bottom:12px">Example: Kubernetes CrashLoopBackOff</h3>
+    <div class="card" style="border-left:3px solid var(--red);margin-bottom:16px">
+      <div class="code-title">User Input</div>
+      <div class="code-block" style="color:var(--red)">Pod 'payment-service-7d4f8b9c5-xk2lm' is in CrashLoopBackOff status</div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--accent)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="color:var(--accent)">🔧 Platform Response</h3>
+        <span class="cell-tag tag-red">Severity: HIGH — Service DOWN</span>
+      </div>
+      <div class="code-title">Diagnostic Commands</div>
+      <div class="code-block">kubectl describe pod payment-service-7d4f8b9c5-xk2lm -n prod
+kubectl logs payment-service-7d4f8b9c5-xk2lm --previous
+kubectl get events -n prod --sort-by='.lastTimestamp'</div>
+      <div class="code-title" style="margin-top:12px">Root Causes (Ranked by Probability)</div>
+      ${[
+        {pct:35,cause:'Application crash (exception, missing config, null pointer)',fix:'Check logs --previous → Fix app code or config'},
+        {pct:30,cause:'OOMKilled (memory limit exceeded)',fix:'kubectl describe | grep OOMKilled → Increase memory limit'},
+        {pct:20,cause:'Liveness probe failing too aggressively',fix:'Add startup probe, increase initialDelaySeconds'},
+        {pct:10,cause:'Missing ConfigMap/Secret mount',fix:'Verify ConfigMap/Secret exists in namespace'},
+        {pct:5,cause:'Image issue (wrong tag, missing binary)',fix:'Verify image tag in registry, check imagePullSecrets'},
+      ].map(c=>`
+        <div style="margin:8px 0">
+          <div class="stat-bar">
+            <div style="min-width:30px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">${c.pct}%</div>
+            <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${c.pct}%"></div></div>
+          </div>
+          <div style="font-size:12px;margin-left:40px"><strong>${c.cause}</strong></div>
+          <div style="font-size:11px;color:var(--green);margin-left:40px">→ ${c.fix}</div>
+        </div>
+      `).join('')}
+      <div class="code-title" style="margin-top:16px">Prevention Alert Rule</div>
+      <div class="code-block">alert: PodCrashLooping
+expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+for: 5m
+labels:
+  severity: critical
+annotations:
+  summary: "Pod {{ $labels.pod }} is crash looping"</div>
+    </div>
+  </div>
+</div>`;
+
+// ---------- INTERVIEW ENGINE ----------
+PAGES.interview = () => `
+<div class="page-header">
+  <h2>🎯 Interview Mastery Engine</h2>
+  <p>500+ Q&A · Real-time scenarios · Mock AI interviews · Scoring & feedback</p>
+</div>
+<div class="content">
+  <div class="tabs" id="int-tabs">
+    ${['Question Bank','Answer Structure','Mock Interview','Sample Q&A'].map((t,i) =>
+      `<div class="tab ${i===0?'active':''}" onclick="switchTab('int',${i})">${t}</div>`
+    ).join('')}
+  </div>
+  <div id="int-panel-0">
+    <div class="table-wrap">
+    <table><thead><tr><th>Category</th><th>Questions</th><th>Types</th></tr></thead><tbody>
+    ${[
+      ['Linux Administration','40','Technical · Scenario · Troubleshoot · Design · Leadership'],
+      ['Networking','35','Technical · VPC Design · Troubleshoot · Hybrid Architecture'],
+      ['Docker & Containers','35','Internals · Dockerfile · Security · Migration · Production'],
+      ['Kubernetes','60','Architecture · Networking · Security · Helm · GitOps · EKS/AKS/GKE'],
+      ['Terraform & IaC','35','State · Modules · CI/CD · Multi-cloud · Policy · Migration'],
+      ['CI/CD & DevOps','35','Pipelines · Strategies · GitOps · DORA · Git · Platform Eng'],
+      ['AWS Cloud','50','Compute · Storage · DB · Networking · Security · Migration · Cost'],
+      ['Azure & GCP','30','Azure VMs/AKS · GCP GKE/BigQuery · Multi-cloud Strategy'],
+      ['Monitoring & Observability','30','Prometheus · Grafana · ELK · Tracing · SLO · AIOps'],
+      ['Nginx & Web Servers','20','Config · Reverse Proxy · SSL · Rate Limiting · Ingress'],
+      ['Databases','25','PostgreSQL · MySQL · MongoDB · Redis · Replication · DR'],
+      ['Security','25','DevSecOps · Container Security · Compliance · Incident Response'],
+      ['AIOps & MLOps','25','Anomaly Detection · ML Pipelines · Model Serving · LLMOps'],
+      ['Maven & Build','15','Lifecycle · POM · Dependencies · Multi-module · CI Integration'],
+      ['Leadership','40','Architecture Decisions · System Design · SRE Culture · Behavioral'],
+    ].map(r=>`<tr><td><strong>${r[0]}</strong></td><td style="font-family:'JetBrains Mono',monospace;color:var(--accent)">${r[1]}</td><td style="font-size:11px;color:var(--text2)">${r[2]}</td></tr>`).join('')}
+    <tr style="background:var(--bg4)"><td><strong>TOTAL</strong></td><td style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700">500+</td><td></td></tr>
+    </tbody></table>
+    </div>
+  </div>
+  <div id="int-panel-1" style="display:none">
+    <h3 style="font-size:15px;margin-bottom:16px">Every Answer Contains 8 Components</h3>
+    <div class="grid grid-2">
+    ${[
+      {icon:'⚡',t:'Quick Answer',d:'2–3 sentence concise response',c:'--accent'},
+      {icon:'📖',t:'Detailed Answer',d:'Full technical explanation, trade-offs, best practices',c:'--blue'},
+      {icon:'🏭',t:'Real-Time Scenario',d:'Production story demonstrating the concept',c:'--orange'},
+      {icon:'🔄',t:'Follow-Up Questions',d:'3–5 likely follow-ups with answers',c:'--purple'},
+      {icon:'🗺️',t:'Architecture Diagram',d:'Visual diagram of the system/concept',c:'--green'},
+      {icon:'💻',t:'Commands/Config',d:'Exact commands or configs interviewer may ask',c:'--yellow'},
+      {icon:'⚠️',t:'Common Mistakes',d:'What candidates get wrong + how to avoid',c:'--red'},
+      {icon:'👁️',t:'Interviewer View',d:'What the interviewer is really testing',c:'--pink'},
+    ].map(f=>`<div class="card"><div style="font-size:20px;margin-bottom:6px">${f.icon}</div><h3 style="color:var(${f.c})">${f.t}</h3><div class="desc">${f.d}</div></div>`).join('')}
+    </div>
+  </div>
+  <div id="int-panel-2" style="display:none">
+    <h3 style="font-size:15px;margin-bottom:16px">AI Mock Interview Mode</h3>
+    <div class="grid grid-3">
+    ${[
+      {t:'Role Selection',items:['DevOps Engineer','SRE','Cloud Architect','Platform Engineer','Security Engineer']},
+      {t:'Experience Level',items:['Junior (0–3yr)','Mid (3–7yr)','Senior (7–12yr)','Staff/Principal (12+yr)']},
+      {t:'Interview Format',items:['30-min Quick','45-min Standard','60-min Deep Dive','System Design Only']},
+    ].map(g=>`
+      <div class="card">
+        <h3>${g.t}</h3>
+        ${g.items.map(i=>`<div style="padding:4px 0;font-size:12px;color:var(--text2)">▸ ${i}</div>`).join('')}
+      </div>
+    `).join('')}
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin-bottom:8px">Scoring Rubric</h3>
+      ${['Technical Depth','Communication Clarity','Problem-Solving','Architecture Thinking','Leadership & Process'].map((s,i)=>`
+        <div class="stat-bar" style="margin:10px 0">
+          <div style="min-width:160px;font-size:12px">${s}</div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${85-i*5}%"></div></div>
+          <div class="stat-bar-label">${85-i*5}%</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+  <div id="int-panel-3" style="display:none">
+    <div class="card" style="border-left:3px solid var(--purple);margin-bottom:16px">
+      <h3 style="color:var(--purple);margin-bottom:8px">Q: Design a zero-downtime deployment for a critical payment service on K8s</h3>
+      <div class="code-title">Quick Answer</div>
+      <p style="font-size:13px;color:var(--text);margin-bottom:12px">Rolling update with maxSurge=1, maxUnavailable=0, combined with readiness probes, PDB, and preStop lifecycle hooks.</p>
+      <div class="code-title">Detailed Answer</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7">
+        <strong>1. Rolling Update:</strong> maxSurge:1 maxUnavailable:0 — never drop below current capacity<br>
+        <strong>2. Readiness Probe:</strong> HTTP /health/ready — pod only gets traffic when ready<br>
+        <strong>3. Startup Probe:</strong> failureThreshold:30 — allow 5min for JVM/heavy apps<br>
+        <strong>4. PreStop Hook:</strong> sleep 15s — drain in-flight requests before SIGTERM<br>
+        <strong>5. PDB:</strong> minAvailable:2 — prevent simultaneous pod termination<br>
+        <strong>6. Resources:</strong> requests=limits for Guaranteed QoS class<br>
+        <strong>7. Anti-Affinity:</strong> spread pods across nodes and AZs
+      </div>
+      <div class="code-title" style="margin-top:12px">Config Snippet</div>
+      <div class="code-block">strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+terminationGracePeriodSeconds: 45
+lifecycle:
+  preStop:
+    exec:
+      command: ['sh', '-c', 'sleep 15']</div>
+      <div class="code-title" style="margin-top:12px">Follow-Up Questions</div>
+      <div style="font-size:12px;color:var(--text2)">
+        1. How handle DB migrations during deployment?<br>
+        2. How implement automated rollback on error rate spike?<br>
+        3. How would you do canary instead of rolling?<br>
+        4. What metrics monitor during deployment?<br>
+        5. How does PDB interact with Cluster Autoscaler?
+      </div>
+    </div>
+  </div>
+</div>`;
+
+// ---------- LOG ANALYZER ----------
+PAGES.analyzer = () => `
+<div class="page-header">
+  <h2>📊 Log & Report Analyzer</h2>
+  <p>Upload logs → AI analysis · Pattern detection · Anomaly scoring · Report generation</p>
+</div>
+<div class="content">
+  <div class="grid grid-2" style="margin-bottom:24px">
+    <div>
+      <h3 style="font-size:15px;margin-bottom:12px">Supported Input Formats</h3>
+      <div class="table-wrap">
+      <table><thead><tr><th>Type</th><th>Formats</th></tr></thead><tbody>
+      ${[
+        ['Application Logs','Plain text, JSON, structured logs'],
+        ['Kubernetes','kubectl logs, pod/cluster events'],
+        ['System Logs','syslog, journalctl, dmesg, auth.log'],
+        ['Web Server','Nginx/Apache access & error logs'],
+        ['Database','PostgreSQL, MySQL slow query, MongoDB profiler'],
+        ['CI/CD','Jenkins, GitHub Actions, GitLab CI'],
+        ['Monitoring','Prometheus export, Grafana JSON, CloudWatch'],
+        ['Terraform','Plan output, apply output, state analysis'],
+        ['Cloud','CloudTrail, Azure Activity, GCP Audit'],
+        ['Custom','Any CSV/JSON structured data'],
+      ].map(r=>`<tr><td><strong>${r[0]}</strong></td><td style="font-size:12px">${r[1]}</td></tr>`).join('')}
+      </tbody></table>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:15px;margin-bottom:12px">Analysis Capabilities</h3>
+      ${[
+        {icon:'🔍',t:'Pattern Detection',d:'Recurring patterns, error clusters, frequency trends'},
+        {icon:'📈',t:'Anomaly Detection',d:'Statistical + ML anomaly scoring'},
+        {icon:'🎯',t:'Root Cause Analysis',d:'Error chain tracing across systems'},
+        {icon:'⏱️',t:'Timeline',d:'Event reconstruction with correlations'},
+        {icon:'💰',t:'Cost Analysis',d:'Cloud cost, waste identification'},
+        {icon:'📄',t:'Report Generation',d:'PDF/DOCX with charts + recommendations'},
+      ].map(f=>`
+        <div class="card" style="padding:12px;margin-bottom:8px">
+          <div style="display:flex;gap:10px;align-items:center">
+            <span style="font-size:18px">${f.icon}</span>
+            <div><strong style="font-size:13px">${f.t}</strong><div class="desc">${f.d}</div></div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</div>`;
+
+// ---------- 5-POINT EXPANDER ----------
+PAGES.expander = () => `
+<div class="page-header">
+  <h2>✨ 5-Point Expander</h2>
+  <p>Enter 5 keywords → Complete documentation with configs, diagrams, Q&A, scenarios</p>
+</div>
+<div class="content">
+  <div class="card" style="border:2px solid var(--accent);margin-bottom:24px;padding:24px">
+    <h3 style="color:var(--accent);margin-bottom:12px">Example Input</h3>
+    <div class="code-block" style="font-size:16px;color:var(--accent)">Keywords: Kubernetes · HPA · Custom Metrics · KEDA · Scaling Strategy</div>
+    <h3 style="color:var(--accent);margin:16px 0 12px">Generated Output (10 Sections)</h3>
+    <div class="grid grid-2">
+    ${[
+      {n:'1',t:'Concept Overview',d:'Complete explanation with architecture diagram'},
+      {n:'2',t:'Configuration Files',d:'HPA YAML, KEDA ScaledObject, Prometheus Adapter'},
+      {n:'3',t:'Step-by-Step Guide',d:'7-step install → configure → deploy → test → monitor'},
+      {n:'4',t:'Architecture Diagram',d:'Pod → Metrics → HPA → Scale + KEDA flow'},
+      {n:'5',t:'Best Practices',d:'Stabilization windows, PDB coordination, cost'},
+      {n:'6',t:'Errors & Fixes',d:'Unknown metric, connection refused, flapping'},
+      {n:'7',t:'Interview Questions',d:'10 Q&A with detailed answers and follow-ups'},
+      {n:'8',t:'Real Scenario',d:'Black Friday: HPA + KEDA handling traffic spike'},
+      {n:'9',t:'Quick Reference',d:'kubectl commands, HPA status, KEDA CRD ref'},
+      {n:'10',t:'Download',d:'All configs as YAML + guide as DOCX/PDF'},
+    ].map(s=>`
+      <div style="display:flex;gap:10px;padding:8px;background:var(--bg3);border-radius:var(--radius2)">
+        <div style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700;font-size:14px">${s.n}</div>
+        <div><strong style="font-size:13px">${s.t}</strong><div style="font-size:11px;color:var(--text2)">${s.d}</div></div>
+      </div>
+    `).join('')}
+    </div>
+  </div>
+</div>`;
+
+// ---------- CONFIG VAULT ----------
+PAGES.configvault = () => `
+<div class="page-header">
+  <h2>🔐 Configuration Vault</h2>
+  <p>500+ production-ready configs · Environment-specific · Versioned · Annotated</p>
+</div>
+<div class="content">
+  <div class="search-box"><span class="search-icon">🔍</span><input placeholder="Search configurations..." oninput="filterTable(this,'config-table')"></div>
+  <div class="table-wrap">
+  <table id="config-table"><thead><tr><th>Tool</th><th>Configurations Available</th><th>Envs</th></tr></thead><tbody>
+  ${[
+    ['Prometheus','prometheus.yml · alertmanager.yml · recording rules · alert rules for 50+ services','3'],
+    ['Grafana','grafana.ini · provisioning · dashboard JSON (K8s, Node, Docker, Nginx, PG, Redis, Kafka)','3'],
+    ['Kubernetes','Deployment · StatefulSet · DaemonSet · Service · Ingress · NetworkPolicy · RBAC · PDB · HPA','3'],
+    ['Nginx','nginx.conf (reverse proxy, LB, SSL, caching, rate limiting, headers, WebSocket, HTTP/2)','3'],
+    ['Docker','Dockerfile (multi-stage, hardened) · docker-compose.yml · .dockerignore','3'],
+    ['Terraform','main.tf · variables.tf · outputs.tf · backend.tf — VPC, EKS, RDS, S3, IAM, Lambda','3'],
+    ['CI/CD','Jenkinsfile · GitHub workflows · .gitlab-ci.yml · Tekton · ArgoCD Application','3'],
+    ['Helm','Chart.yaml · values.yaml (dev/staging/prod) · templates/ per tool','3'],
+    ['Linux','sshd_config · sysctl.conf · limits.conf · logrotate.conf · fstab · systemd units','2'],
+    ['PostgreSQL','postgresql.conf (workload tuned) · pg_hba.conf · pgbouncer.ini','3'],
+    ['Redis','redis.conf (standalone/sentinel/cluster) · persistence · memory optimization','3'],
+    ['Elasticsearch','elasticsearch.yml · jvm.options · ILM policies · index templates','3'],
+    ['Kafka','server.properties · consumer/producer · connect-distributed','3'],
+    ['Security','OPA/Rego · Kyverno policies · Falco rules · WAF rules · NetworkPolicies','2'],
+    ['OpenTelemetry','OTel Collector config · Loki config · Tempo config · Thanos/Mimir config','3'],
+  ].map(r=>`<tr><td><strong>${r[0]}</strong></td><td style="font-size:12px">${r[1]}</td><td style="font-family:'JetBrains Mono',monospace;color:var(--accent);text-align:center">${r[2]}</td></tr>`).join('')}
+  </tbody></table>
+  </div>
+</div>`;
+
+// ---------- API ----------
+PAGES.api = () => `
+<div class="page-header">
+  <h2>🔌 API Specification</h2>
+  <p>43 RESTful endpoints · JWT auth · Rate limited · OpenAPI 3.0 documented</p>
+</div>
+<div class="content">
+  <div class="search-box"><span class="search-icon">🔍</span><input placeholder="Search API endpoints..." oninput="filterTable(this,'api-table')"></div>
+  <div class="table-wrap" style="max-height:700px;overflow-y:auto">
+  <table id="api-table"><thead><tr><th>Module</th><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead><tbody>
+  ${[
+    ['Auth','POST','/api/v1/auth/login','Authenticate, return JWT'],
+    ['Auth','POST','/api/v1/auth/register','Register with email verification'],
+    ['Auth','POST','/api/v1/auth/refresh','Refresh JWT token'],
+    ['Auth','POST','/api/v1/auth/sso','SSO via SAML/OIDC'],
+    ['Learn','GET','/api/v1/paths','List learning paths + progress'],
+    ['Learn','GET','/api/v1/paths/:id/topics','Get topics in a path'],
+    ['Learn','GET','/api/v1/topics/:id','Full topic content'],
+    ['Learn','POST','/api/v1/progress','Update user progress'],
+    ['Learn','POST','/api/v1/assessments/:id/submit','Submit quiz answers'],
+    ['Labs','POST','/api/v1/labs/create','Provision sandboxed lab'],
+    ['Labs','GET','/api/v1/labs/:id/status','Check lab status'],
+    ['Labs','DELETE','/api/v1/labs/:id','Terminate lab'],
+    ['Labs','POST','/api/v1/labs/:id/validate','Validate task completion'],
+    ['Deploy','GET','/api/v1/templates','List deploy templates'],
+    ['Deploy','GET','/api/v1/templates/:id','Get template + docs'],
+    ['Deploy','POST','/api/v1/deploy','Deploy to cluster'],
+    ['Deploy','GET','/api/v1/deploy/:id/status','Deployment status'],
+    ['Deploy','POST','/api/v1/deploy/:id/rollback','Rollback deployment'],
+    ['Trouble','POST','/api/v1/troubleshoot','Submit error for analysis'],
+    ['Trouble','GET','/api/v1/errors/search','Search error catalog'],
+    ['Trouble','GET','/api/v1/errors/:id','Full error details'],
+    ['Interview','GET','/api/v1/interview/questions','Get Q&A by topic/level'],
+    ['Interview','GET','/api/v1/interview/questions/:id','Full question + answer'],
+    ['Interview','POST','/api/v1/interview/mock/start','Start mock interview'],
+    ['Interview','POST','/api/v1/interview/mock/:id/answer','Submit answer, get eval'],
+    ['Interview','GET','/api/v1/interview/mock/:id/report','Interview report'],
+    ['Analyzer','POST','/api/v1/analyze/logs','Upload + analyze logs'],
+    ['Analyzer','POST','/api/v1/analyze/metrics','Analyze metrics data'],
+    ['Analyzer','GET','/api/v1/analyze/:id/report','Get analysis report'],
+    ['Expand','POST','/api/v1/expand','Submit 5-point expansion'],
+    ['Expand','GET','/api/v1/expand/:id','Get expanded content'],
+    ['Expand','GET','/api/v1/expand/:id/download','Download DOCX/PDF'],
+    ['Config','GET','/api/v1/configs','Configs by tool/env'],
+    ['Config','GET','/api/v1/configs/:id','Specific config'],
+    ['Config','POST','/api/v1/configs/customize','Customize config'],
+    ['Search','GET','/api/v1/search','Global full-text search'],
+    ['Search','POST','/api/v1/search/semantic','Semantic embedding search'],
+    ['Docs','POST','/api/v1/docs/generate','Generate documentation'],
+    ['Docs','GET','/api/v1/docs/:id/download','Download document'],
+    ['Admin','GET','/api/v1/admin/users','List org users'],
+    ['Admin','GET','/api/v1/admin/analytics','Usage analytics'],
+    ['Admin','POST','/api/v1/admin/paths/create','Create custom path'],
+    ['Admin','GET','/api/v1/admin/billing','Billing dashboard'],
+  ].map(r=>{
+    const mc = r[1]==='GET'?'tag-green':r[1]==='POST'?'tag-blue':r[1]==='DELETE'?'tag-red':'tag-yellow';
+    return `<tr><td><span class="cell-tag tag-purple">${r[0]}</span></td><td><span class="cell-tag ${mc}">${r[1]}</span></td><td><span class="cell-code">${r[2]}</span></td><td style="font-size:12px">${r[3]}</td></tr>`;
+  }).join('')}
+  </tbody></table>
+  </div>
+</div>`;
+
+// ---------- ERRORS ----------
+PAGES.errors = () => PAGES.troubleshoot();
+
+// ---------- COVERAGE ----------
+PAGES.coverage = () => `
+<div class="page-header">
+  <h2>📈 Content Coverage Matrix</h2>
+  <p>517 topics · 520+ configs · 615+ errors · 485+ Q&A · 168 labs · 163 diagrams</p>
+</div>
+<div class="content">
+  <div class="table-wrap">
+  <table><thead><tr><th>Category</th><th>Topics</th><th>Configs</th><th>Errors</th><th>Interview Qs</th><th>Labs</th><th>Diagrams</th></tr></thead><tbody>
+  ${[
+    ['Linux',45,'30+','60+','40+',15,12],['Networking',35,'25+','40+','35+',10,15],
+    ['Docker',40,'35+','50+','35+',12,10],['Kubernetes',65,'80+','80+','60+',25,20],
+    ['Terraform',30,'40+','40+','35+',10,8],['CI/CD',35,'30+','35+','35+',8,10],
+    ['AWS',55,'60+','60+','50+',20,18],['Azure',40,'40+','40+','30+',12,12],
+    ['GCP',35,'35+','35+','25+',10,10],['Monitoring',30,'40+','40+','30+',10,12],
+    ['Nginx',20,'25+','25+','20+',8,6],['Databases',30,'35+','45+','25+',10,8],
+    ['Security',25,'20+','30+','25+',8,10],['AIOps/MLOps',20,'15+','20+','25+',6,8],
+    ['Maven/Build',12,'10+','15+','15+',4,4],
+  ].map((r,i)=>`<tr><td><strong>${r[0]}</strong></td>${r.slice(1).map(v=>`<td style="font-family:'JetBrains Mono',monospace;text-align:center;color:var(--accent)">${v}</td>`).join('')}</tr>`).join('')}
+  <tr style="background:var(--bg4)"><td><strong>TOTAL</strong></td><td style="font-family:'JetBrains Mono',monospace;text-align:center;color:var(--accent);font-weight:700">517</td><td style="font-family:'JetBrains Mono',monospace;text-align:center;color:var(--blue);font-weight:700">520+</td><td style="font-family:'JetBrains Mono',monospace;text-align:center;color:var(--red);font-weight:700">615+</td><td style="font-family:'JetBrains Mono',monospace;text-align:center;color:var(--purple);font-weight:700">485+</td><td style="font-family:'JetBrains Mono',monospace;text-align:center;color:var(--orange);font-weight:700">168</td><td style="font-family:'JetBrains Mono',monospace;text-align:center;color:var(--yellow);font-weight:700">163</td></tr>
+  </tbody></table>
+  </div>
+
+  <h3 style="font-size:15px;margin:24px 0 16px">Coverage by Topic Depth</h3>
+  <div class="grid grid-3">
+  ${[
+    {cat:'Kubernetes',topics:65,configs:80,errors:80,qs:60,c:'--accent'},
+    {cat:'AWS Cloud',topics:55,configs:60,errors:60,qs:50,c:'--blue'},
+    {cat:'Linux',topics:45,configs:30,errors:60,qs:40,c:'--orange'},
+    {cat:'Docker',topics:40,configs:35,errors:50,qs:35,c:'--purple'},
+    {cat:'Azure',topics:40,configs:40,errors:40,qs:30,c:'--yellow'},
+    {cat:'CI/CD',topics:35,configs:30,errors:35,qs:35,c:'--green'},
+  ].map(c=>`
+    <div class="card">
+      <h3 style="color:var(${c.c})">${c.cat}</h3>
+      ${['Topics','Configs','Errors','Interview'].map((l,i)=>{
+        const v = [c.topics,c.configs,c.errors,c.qs][i];
+        return `<div class="stat-bar"><div style="min-width:70px;font-size:11px">${l}</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:${v}%;background:var(${c.c})"></div></div><div class="stat-bar-label">${v}+</div></div>`;
+      }).join('')}
+    </div>
+  `).join('')}
+  </div>
+</div>`;
+
+// ---------- ROADMAP ----------
+PAGES.roadmap = () => `
+<div class="page-header">
+  <h2>🗺️ Roadmap & Revenue</h2>
+  <p>8 phases · 12 months · $415K Year 1 target</p>
+</div>
+<div class="content">
+  <h3 style="font-size:15px;margin-bottom:16px">Implementation Phases</h3>
+  ${[
+    {ph:'Phase 1: Foundation',time:'Month 1–2',items:['K8s cluster setup','CI/CD pipeline','Auth (Keycloak)','Database schema','API Gateway','Frontend shell'],c:'--accent',pct:100},
+    {ph:'Phase 2: Learning Engine',time:'Month 2–4',items:['Learning paths','Topic content system','Assessment engine','First 50 topics','Search service'],c:'--blue',pct:85},
+    {ph:'Phase 3: Troubleshooter',time:'Month 3–5',items:['Error catalog schema','AI/LLM integration (Ollama)','Knowledge graph','2,000 errors cataloged'],c:'--red',pct:70},
+    {ph:'Phase 4: Interview Engine',time:'Month 4–6',items:['Q&A database','Mock interview AI','500 questions + answers','Scoring system'],c:'--purple',pct:55},
+    {ph:'Phase 5: Deployment Engine',time:'Month 5–7',items:['Template renderer','Helm/TF execution','30 templates','One-click UI'],c:'--orange',pct:45},
+    {ph:'Phase 6: Lab System',time:'Month 6–8',items:['k3s provisioner','Task validation','50 labs','Web terminal'],c:'--green',pct:30},
+    {ph:'Phase 7: Advanced',time:'Month 7–9',items:['Log analyzer','5-Point expander','Config vault 500+','Doc generator'],c:'--yellow',pct:20},
+    {ph:'Phase 8: Scale & Launch',time:'Month 9–12',items:['500+ topics','10K errors','Enterprise features','Mobile app','Public launch'],c:'--pink',pct:10},
+  ].map(p=>`
+    <div class="card" style="margin-bottom:12px;border-left:3px solid var(${p.c})">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h3 style="color:var(${p.c})">${p.ph}</h3>
+        <span class="cell-tag tag-green">${p.time}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${p.items.map(i=>`<span class="pill" style="background:var(${p.c})15;color:var(${p.c});border:1px solid var(${p.c})33">${i}</span>`).join('')}
+      </div>
+    </div>
+  `).join('')}
+
+  <h3 style="font-size:15px;margin:24px 0 16px">Revenue Model — Year 1 Target: $415,000</h3>
+  <div class="grid grid-4">
+  ${[
+    {stream:'Pro Subs',val:'$120K',desc:'$29/mo individual'},
+    {stream:'Enterprise',val:'$100K',desc:'Custom pricing, SLA'},
+    {stream:'Team Plans',val:'$80K',desc:'$19/user/mo'},
+    {stream:'Training',val:'$40K',desc:'Corporate programs'},
+    {stream:'Consulting',val:'$30K',desc:'Arch reviews, assessments'},
+    {stream:'Certifications',val:'$20K',desc:'Paid exams + badges'},
+    {stream:'API Access',val:'$15K',desc:'Pay-per-call'},
+    {stream:'Marketplace',val:'$10K',desc:'3rd-party templates'},
+  ].map(r=>`
+    <div class="card">
+      <div class="metric" style="color:var(--accent)">${r.val}</div>
+      <h3>${r.stream}</h3>
+      <div class="desc">${r.desc}</div>
+    </div>
+  `).join('')}
+  </div>
+</div>`;
+
+// ======================== RENDER ========================
+function renderPage(id) {
+  const main = document.getElementById('main');
+  if (PAGES[id]) {
+    main.innerHTML = PAGES[id]();
+    main.scrollTop = 0;
+  }
+}
+
+function switchTab(prefix, idx) {
+  document.querySelectorAll(`#${prefix}-tabs .tab`).forEach((t,i) => {
+    t.classList.toggle('active', i===idx);
+  });
+  for (let i=0; i<10; i++) {
+    const panel = document.getElementById(`${prefix}-panel-${i}`);
+    if (panel) panel.style.display = i===idx ? 'block' : 'none';
+  }
+}
+
+function filterTable(input, tableId) {
+  const q = input.value.toLowerCase();
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  table.querySelectorAll('tbody tr').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// Init
+renderNav();
+renderPage('overview');
+</script>
+</body>
+</html>

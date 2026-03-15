@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ business_name }} — AI Sales Dashboard</title>
+    <meta name="description" content="Real-time AI Sales Agent dashboard for WhatsApp conversations">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+</head>
+
+<body>
+
+    <div class="shell">
+
+        <!-- ======== SIDEBAR ======== -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo">
+                    <span style="color:white;font-size:18px;font-weight:900;font-family:Outfit,sans-serif;letter-spacing:-1px;">A</span>
+                </div>
+                <div>
+                    <div class="brand-text">{{ business_name }}</div>
+                </div>
+                <div class="brand-badge">LIVE</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-label">Menu</div>
+                <a class="nav-link active" data-view="overview" onclick="switchView('overview', this)"
+                    id="nav-overview">
+                    <i class="ri-dashboard-3-line"></i> Overview
+                </a>
+                <a class="nav-link" data-view="conversations" onclick="switchView('conversations', this)"
+                    id="nav-conversations">
+                    <i class="ri-chat-3-line"></i> Conversations
+                </a>
+                <a class="nav-link" data-view="pipeline" onclick="switchView('pipeline', this)" id="nav-pipeline">
+                    <i class="ri-funnel-line"></i> Sales Pipeline
+                </a>
+                <a class="nav-link" data-view="activity" onclick="switchView('activity', this)" id="nav-activity">
+                    <i class="ri-pulse-line"></i> Live Activity
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="system-status">
+                    <div class="status-dot"></div>
+                    <span class="status-label">System Online</span>
+                </div>
+                <a href="/dashboard/logout" class="nav-link" style="margin-top:8px;color:#ef4444;">
+                    <i class="ri-logout-box-r-line"></i> Sign Out
+                </a>
+            </div>
+        </aside>
+
+        <!-- ======== MAIN CONTENT ======== -->
+        <div class="main-content">
+
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="topbar-left" style="display:flex;align-items:center;gap:8px;">
+                    <button class="btn-hamburger" id="hamburgerBtn" onclick="document.querySelector('.sidebar').classList.toggle('open')" style="display:none;">
+                        <i class="ri-menu-line"></i>
+                    </button>
+                    <div>
+                        <h1 id="pageTitle">Sales Dashboard</h1>
+                        <p>Real-time AI sales intelligence</p>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <div class="live-indicator">
+                        <div class="live-dot"></div>
+                        <span id="refreshTimer">Connecting...</span>
+                    </div>
+                    <button class="btn-refresh" onclick="loadAllData()">
+                        <i class="ri-refresh-line"></i> Refresh
+                    </button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content">
+
+                <!-- KPI Cards -->
+                <section class="kpi-grid" id="kpiGrid">
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="ri-chat-3-line"></i></div>
+                        <span class="kpi-value" id="totalConversations">--</span>
+                        <span class="kpi-label">Total Conversations</span>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="ri-user-heart-line"></i></div>
+                        <span class="kpi-value" id="activeToday">--</span>
+                        <span class="kpi-label">Active Today</span>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="ri-message-3-line"></i></div>
+                        <span class="kpi-value" id="totalMessages">--</span>
+                        <span class="kpi-label">Messages Processed</span>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="ri-bar-chart-grouped-line"></i></div>
+                        <span class="kpi-value" id="avgLeadScore">--</span>
+                        <span class="kpi-label">Avg Lead Score</span>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-icon"><i class="ri-percent-line"></i></div>
+                        <span class="kpi-value" id="conversionRate">--%</span>
+                        <span class="kpi-label">Conversion Rate</span>
+                    </div>
+                </section>
+
+                <!-- Charts Row -->
+                <section class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <h3><i class="ri-funnel-3-line" style="color:var(--purple)"></i> Sales Pipeline</h3>
+                        </div>
+                        <div class="pipeline-funnel" id="pipelineFunnel">
+                            <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">
+                                Loading...</div>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-card-header">
+                            <h3><i class="ri-emotion-line" style="color:var(--blue)"></i> Sentiment Analysis</h3>
+                        </div>
+                        <div class="sentiment-bars" id="sentimentBars">
+                            <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px">
+                                Loading...</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Conversations Table -->
+                <section class="table-section">
+                    <div class="table-header">
+                        <h3><i class="ri-group-line"></i> Recent Conversations</h3>
+                        <input type="text" class="search-input" placeholder="Search name or number…" id="searchInput"
+                            oninput="filterConversations()">
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Contact</th>
+                                    <th>Stage</th>
+                                    <th>Score</th>
+                                    <th>Sentiment</th>
+                                    <th>Messages</th>
+                                    <th>Last Active</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="conversationsTable">
+                                <tr>
+                                    <td colspan="7" class="loading-cell">Loading conversations…</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Live Activity Feed -->
+                <section class="activity-section" id="activitySection" style="display:none;">
+                    <h3><i class="ri-pulse-line" style="color:var(--green)"></i> Live Activity Feed</h3>
+                    <div class="activity-feed" id="activityFeed"></div>
+                </section>
+
+            </div><!-- /page-content -->
+        </div><!-- /main-content -->
+    </div><!-- /shell -->
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay" onclick="closeChatPanel()"></div>
+
+    <!-- Chat Slide-Over Panel -->
+    <div class="chat-panel" id="chatPanel">
+        <div class="chat-panel-header">
+            <div class="chat-panel-contact">
+                <div class="chat-panel-avatar" id="chatPanelAvatar">?</div>
+                <div>
+                    <h3 id="chatContactName">Contact</h3>
+                    <small id="chatContactNumber"></small>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="ai-toggle-wrapper">
+                    <span style="font-size:12px; font-weight:600; color:var(--text-sec);" id="aiStatusText">AI
+                        Active</span>
+                    <label class="switch">
+                        <input type="checkbox" id="aiToggle" onchange="toggleAI()" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <button class="btn-close" onclick="closeChatPanel()"><i class="ri-close-line"></i></button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-area">
+            <input type="text" id="manualMessage" placeholder="Type a message…"
+                onkeydown="if(event.key==='Enter')sendManualMessage()">
+            <button onclick="sendManualMessage()"><i class="ri-send-plane-fill"></i></button>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js', { scope: '/' });
+        }
+        // Show hamburger on mobile
+        if (window.innerWidth <= 480) {
+            document.getElementById('hamburgerBtn').style.display = 'flex';
+        }
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(e) {
+            const sidebar = document.querySelector('.sidebar');
+            const btn = document.getElementById('hamburgerBtn');
+            if (window.innerWidth <= 480 && !sidebar.contains(e.target) && !btn.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
+</body>
+
+</html>

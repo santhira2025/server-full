@@ -1,0 +1,76 @@
+replicaCount: 2
+
+image:
+  repository: api-sentinel
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: api.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+
+env:
+  APP_NAME: "API Security Engine"
+  DEBUG: "false"
+  DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres:5432/api_security"
+  REDIS_URL: "redis://redis:6379/0"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  KAFKA_ENABLED: "true"
+  TENANT_RLS_ENABLED: "true"
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations:
+    eks.amazonaws.com/role-arn: ""
+
+externalServices:
+  redisUrl: "redis://redis:6379/0"
+  kafkaBootstrap: "kafka:9092"
+  s3Bucket: "api-sentinel-archive"
+  clickhouseUrl: "http://clickhouse:8123"
+  s3Region: "us-east-1"
+  kafkaSecurityProtocol: "PLAINTEXT"
+  kafkaSaslMechanism: ""
+  kafkaSaslUsername: ""
+  kafkaSaslPassword: ""
+
+postgresql:
+  enabled: true
+  auth:
+    username: postgres
+    password: postgres
+    database: api_security
+
+redis:
+  enabled: true
+
+kafka:
+  enabled: true
+
+clickhouse:
+  enabled: false

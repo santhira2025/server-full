@@ -1,0 +1,39 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Test & dev
+tests/
+pytest_cache/
+.pytest_cache/
+*.log
+*.tar
+
+# Docker
+.dockerignore
+Dockerfile
+
+# Docs & images
+docs/
+*.png
+*.jpg
+*.jpeg
+*.pdf
+
+# Node
+node_modules/

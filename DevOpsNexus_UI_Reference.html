@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevOps Nexus — Complete Reference</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060a0f;
+  --bg2: #0b1117;
+  --bg3: #111922;
+  --bg4: #182230;
+  --border: #1e2d3d;
+  --border2: #2a3f55;
+  --text: #c8d6e5;
+  --text2: #8899aa;
+  --text3: #556677;
+  --accent: #00e68a;
+  --accent2: #00b8d4;
+  --accent3: #ff6b35;
+  --red: #ff4757;
+  --purple: #a78bfa;
+  --yellow: #fbbf24;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.6; }
+
+/* SCANLINE OVERLAY */
+body::after {
+  content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,230,138,0.015) 2px, rgba(0,230,138,0.015) 4px);
+  pointer-events: none; z-index: 9999;
+}
+
+/* HEADER */
+.header {
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 40px 0 32px;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle at 30% 50%, rgba(0,230,138,0.04) 0%, transparent 50%),
+              radial-gradient(circle at 70% 50%, rgba(0,184,212,0.03) 0%, transparent 50%);
+}
+.header-inner {
+  max-width: 1400px; margin: 0 auto; padding: 0 32px; position: relative;
+}
+.logo-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+.logo { font-family: var(--mono); font-weight: 700; font-size: 32px; letter-spacing: -1px; }
+.logo-dev { color: var(--accent); }
+.logo-ops { color: var(--text); }
+.logo-nx { color: var(--text3); font-weight: 400; font-size: 20px; }
+.subtitle { font-family: var(--mono); font-size: 13px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; }
+.stats-row {
+  display: flex; gap: 40px; margin-top: 24px; flex-wrap: wrap;
+}
+.stat { text-align: left; }
+.stat-val { font-family: var(--mono); font-size: 28px; font-weight: 700; }
+.stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
+
+/* SEARCH BAR */
+.search-area { max-width: 1400px; margin: 0 auto; padding: 20px 32px; }
+.search-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.search-input {
+  flex: 1; min-width: 260px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 16px; font-family: var(--mono); font-size: 14px;
+  color: var(--text); outline: none; transition: border-color 0.2s;
+}
+.search-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,230,138,0.1); }
+.search-input::placeholder { color: var(--text3); }
+.filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill {
+  font-family: var(--mono); font-size: 11px; padding: 5px 12px;
+  background: transparent; border: 1px solid var(--border); border-radius: 20px;
+  color: var(--text3); cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.pill:hover { border-color: var(--accent); color: var(--accent); }
+.pill.active { background: rgba(0,230,138,0.12); border-color: var(--accent); color: var(--accent); }
+.result-count { font-family: var(--mono); font-size: 12px; color: var(--text3); margin-left: 8px; }
+
+/* MAIN GRID */
+.main { max-width: 1400px; margin: 0 auto; padding: 0 32px 60px; display: flex; gap: 24px; }
+.servers-col { flex: 1; min-width: 0; }
+.detail-col {
+  width: 420px; flex-shrink: 0; position: sticky; top: 20px; align-self: flex-start;
+  max-height: calc(100vh - 40px); overflow-y: auto;
+}
+.detail-col::-webkit-scrollbar { width: 4px; }
+.detail-col::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* SERVER CARDS */
+.server-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.server-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 20px; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden;
+}
+.server-card::before {
+  content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+  background: var(--card-color, var(--accent)); opacity: 0; transition: opacity 0.25s;
+}
+.server-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.server-card:hover::before { opacity: 1; }
+.server-card.active { border-color: var(--card-color, var(--accent)); background: var(--bg3); }
+.server-card.active::before { opacity: 1; }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.card-icon { font-size: 22px; margin-right: 8px; }
+.card-name { font-family: var(--mono); font-size: 15px; font-weight: 600; color: #fff; }
+.card-port {
+  font-family: var(--mono); font-size: 11px; padding: 2px 8px; border-radius: 4px;
+  background: rgba(0,230,138,0.1); color: var(--accent); border: 1px solid rgba(0,230,138,0.2);
+}
+.card-tagline { font-size: 12px; color: var(--text2); margin-bottom: 12px; line-height: 1.5; }
+.card-bottom { display: flex; justify-content: space-between; align-items: center; }
+.card-tools { font-family: var(--mono); font-size: 12px; }
+.card-tools span { color: var(--card-color, var(--accent)); font-weight: 700; }
+.card-cat { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+.card-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 6px rgba(0,230,138,0.5); flex-shrink: 0;
+}
+
+/* DETAIL PANEL */
+.detail-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 0; }
+.detail-header {
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.detail-title { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+.detail-close {
+  background: none; border: none; color: var(--text3); font-size: 20px; cursor: pointer;
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: all 0.2s;
+}
+.detail-close:hover { background: var(--bg4); color: var(--text); }
+.detail-body { padding: 20px 24px; }
+.detail-meta {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px; margin-bottom: 20px;
+}
+.meta-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+.meta-row:last-child { margin-bottom: 0; }
+.meta-label { color: var(--text3); font-family: var(--mono); }
+.meta-val { color: var(--text); font-family: var(--mono); }
+.detail-section { margin-bottom: 20px; }
+.section-title {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;
+  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+}
+
+/* TOOL ITEMS */
+.tool-item {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+  margin-bottom: 6px; overflow: hidden; transition: all 0.2s;
+}
+.tool-item:hover { border-color: var(--border2); }
+.tool-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; cursor: pointer;
+}
+.tool-name { font-family: var(--mono); font-size: 13px; color: var(--accent); font-weight: 500; }
+.tool-type {
+  font-family: var(--mono); font-size: 10px; padding: 1px 6px; border-radius: 3px;
+}
+.tool-type.read { background: rgba(0,230,138,0.1); color: var(--accent); }
+.tool-type.write { background: rgba(255,107,53,0.1); color: var(--accent3); }
+.tool-type.rw { background: rgba(167,139,250,0.1); color: var(--purple); }
+.tool-expand {
+  padding: 0 12px 10px; font-size: 12px; color: var(--text2); line-height: 1.6;
+  display: none; border-top: 1px solid var(--border);
+}
+.tool-expand.open { display: block; padding-top: 10px; }
+.tool-example {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+  padding: 8px 10px; margin-top: 8px; font-family: var(--mono); font-size: 11px;
+  color: var(--accent2); line-height: 1.7;
+}
+.tool-example-label { color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.tool-param { display: flex; gap: 8px; margin: 3px 0; font-family: var(--mono); font-size: 11px; }
+.tool-param-name { color: var(--yellow); min-width: 100px; }
+.tool-param-desc { color: var(--text2); }
+
+/* EMPTY STATE */
+.empty-detail {
+  padding: 60px 24px; text-align: center; color: var(--text3);
+}
+.empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+.empty-text { font-family: var(--mono); font-size: 13px; }
+
+/* NO RESULTS */
+.no-results { text-align: center; padding: 60px 20px; color: var(--text3); font-family: var(--mono); }
+
+/* ARCHITECTURE */
+.arch-bar {
+  max-width: 1400px; margin: 0 auto; padding: 20px 32px;
+  border-top: 1px solid var(--border);
+}
+.arch-flow {
+  display: flex; align-items: center; justify-content: center; gap: 0; flex-wrap: wrap;
+}
+.arch-node {
+  padding: 10px 20px; border-radius: 8px; font-family: var(--mono); font-size: 12px;
+  font-weight: 600; white-space: nowrap;
+}
+.arch-arrow { color: var(--text3); font-size: 18px; padding: 0 8px; }
+.footer-line {
+  text-align: center; padding: 16px; font-family: var(--mono); font-size: 11px; color: var(--text3);
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.server-card { animation: fadeUp 0.4s ease both; }
+.server-card:nth-child(1) { animation-delay: 0s; }
+.server-card:nth-child(2) { animation-delay: 0.03s; }
+.server-card:nth-child(3) { animation-delay: 0.06s; }
+.server-card:nth-child(4) { animation-delay: 0.09s; }
+.server-card:nth-child(5) { animation-delay: 0.12s; }
+.server-card:nth-child(6) { animation-delay: 0.15s; }
+.server-card:nth-child(7) { animation-delay: 0.18s; }
+.server-card:nth-child(8) { animation-delay: 0.21s; }
+.server-card:nth-child(9) { animation-delay: 0.24s; }
+.server-card:nth-child(10) { animation-delay: 0.27s; }
+.server-card:nth-child(11) { animation-delay: 0.30s; }
+.server-card:nth-child(12) { animation-delay: 0.33s; }
+.server-card:nth-child(13) { animation-delay: 0.36s; }
+.server-card:nth-child(14) { animation-delay: 0.39s; }
+
+@keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.detail-panel { animation: slideIn 0.3s ease; }
+
+@media (max-width: 900px) {
+  .main { flex-direction: column; }
+  .detail-col { width: 100%; position: static; max-height: none; }
+  .server-grid { grid-template-columns: 1fr; }
+  .stats-row { gap: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo-row">
+      <div class="logo"><span class="logo-dev">DevOps</span><span class="logo-ops">Nexus</span></div>
+      <span class="logo-nx">by Santhira</span>
+    </div>
+    <div class="subtitle">Complete Platform Reference &mdash; 14 MCP Servers &bull; 113 AI Tools</div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val" style="color:var(--accent)">14</div><div class="stat-label">MCP Servers</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--accent2)">113</div><div class="stat-label">AI Tools</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--accent3)">13</div><div class="stat-label">Categories</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--purple)">7K+</div><div class="stat-label">Lines of Code</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--yellow)">8000</div><div class="stat-label">Port Range Start</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="search-area">
+  <div class="search-row">
+    <input type="text" class="search-input" id="searchInput" placeholder="Search servers, tools, features... (e.g. health_check, kafka, deploy)" autocomplete="off">
+    <div class="filter-pills" id="filterPills"></div>
+    <span class="result-count" id="resultCount"></span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="servers-col">
+    <div class="server-grid" id="serverGrid"></div>
+    <div class="no-results" id="noResults" style="display:none">No servers match your search.</div>
+  </div>
+  <div class="detail-col" id="detailCol">
+    <div class="empty-detail">
+      <div class="empty-icon">&lt;/&gt;</div>
+      <div class="empty-text">Select a server to explore its tools</div>
+    </div>
+  </div>
+</div>
+
+<div class="arch-bar">
+  <div class="arch-flow">
+    <div class="arch-node" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text)">User / App</div>
+    <div class="arch-arrow">&rarr;</div>
+    <div class="arch-node" style="background:rgba(0,230,138,0.08);border:1px solid rgba(0,230,138,0.25);color:var(--accent)">AI (Claude / n8n)</div>
+    <div class="arch-arrow">&rarr;</div>
+    <div class="arch-node" style="background:rgba(0,184,212,0.08);border:1px solid rgba(0,184,212,0.25);color:var(--accent2)">DevOps Nexus MCP</div>
+    <div class="arch-arrow">&rarr;</div>
+    <div class="arch-node" style="background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);color:var(--accent3)">Infrastructure</div>
+  </div>
+  <div class="footer-line">Built by Rajkumar Madhu, Founder & CTO, Santhira &bull; Version 1.0 &bull; March 2026</div>
+</div>
+
+<script>
+const DATA = [
+  {
+    id:"redis", name:"RedisNexus", port:8000, icon:"\u26A1", color:"#DC382D", cat:"Database",
+    tagline:"Cache & Real-Time Data Intelligence", dep:"Redis 7.2", driver:"redis-py async",
+    desc:"Complete Redis operations with AI-powered cache strategy advisor, multi-tenant key isolation, and all data structures (strings, hashes, lists, sorted sets, streams, pub/sub).",
+    tools:[
+      {name:"redis_set", type:"write", desc:"Set key-value pairs with optional TTL expiration, NX (only if not exists), and XX (only if exists) conditions.", params:[{n:"key",d:"Redis key name"},{n:"value",d:"Value to store"},{n:"ttl",d:"Time-to-live in seconds"},{n:"condition",d:"NX or XX"}], example:'"Set session:user123 to {name:Raj} with 1 hour TTL"'},
+      {name:"redis_get", type:"read", desc:"Retrieve value by key with automatic type detection (string, hash, list, set, zset).", params:[{n:"key",d:"Redis key to retrieve"}], example:'"Get the value of session:user123"'},
+      {name:"redis_delete", type:"write", desc:"Delete one or more keys. Requires confirm=true for safety.", params:[{n:"keys",d:"List of keys to delete"},{n:"confirm",d:"Must be true"}], example:'"Delete all expired session keys"'},
+      {name:"redis_keys", type:"read", desc:"Search keys by pattern with count, type info, and TTL remaining.", params:[{n:"pattern",d:"Glob pattern (e.g. user:*)"},{n:"count",d:"Max results"}], example:'"Show all keys matching order:*"'},
+      {name:"redis_hash_set", type:"write", desc:"Set one or more fields in a hash with optional TTL on the key.", params:[{n:"key",d:"Hash key"},{n:"fields",d:"Field-value pairs"},{n:"ttl",d:"Optional TTL"}], example:'"Store user profile fields in hash user:123"'},
+      {name:"redis_hash_get", type:"read", desc:"Get a single field or all fields from a hash.", params:[{n:"key",d:"Hash key"},{n:"field",d:"Specific field or all"}], example:'"Get the email field from user:123 hash"'},
+      {name:"redis_list_push", type:"write", desc:"Push values to a list (LPUSH or RPUSH) with optional max length trim.", params:[{n:"key",d:"List key"},{n:"values",d:"Values to push"},{n:"direction",d:"left or right"},{n:"max_length",d:"Auto-trim length"}], example:'"Push new notification to user:123:inbox, keep last 100"'},
+      {name:"redis_list_range", type:"read", desc:"Get elements from a list by index range.", params:[{n:"key",d:"List key"},{n:"start",d:"Start index"},{n:"stop",d:"End index"}], example:'"Get last 10 notifications from inbox"'},
+      {name:"redis_sorted_set_add", type:"write", desc:"Add members with scores to a sorted set for rankings/leaderboards.", params:[{n:"key",d:"Sorted set key"},{n:"members",d:"Member-score pairs"}], example:'"Add player scores to leaderboard:daily"'},
+      {name:"redis_sorted_set_range", type:"read", desc:"Get sorted set members by rank or score range.", params:[{n:"key",d:"Sorted set key"},{n:"start",d:"Start rank/score"},{n:"stop",d:"End rank/score"}], example:'"Get top 10 players from leaderboard"'},
+      {name:"redis_publish", type:"write", desc:"Publish a message to a Redis pub/sub channel.", params:[{n:"channel",d:"Channel name"},{n:"message",d:"Message payload"}], example:'"Publish order update to channel:orders"'},
+      {name:"redis_subscribe", type:"read", desc:"Subscribe and read messages from a channel with timeout.", params:[{n:"channel",d:"Channel name"},{n:"timeout",d:"Listen duration"}], example:'"Listen to notifications channel for 5 seconds"'},
+      {name:"redis_stream_add", type:"write", desc:"Add an entry to a Redis Stream for event sourcing.", params:[{n:"key",d:"Stream key"},{n:"data",d:"Field-value data"}], example:'"Add order event to stream:orders"'},
+      {name:"redis_health_check", type:"read", desc:"AI-scored health check: memory usage, hit/miss ratio, connected clients, replication status, eviction policy. Returns 0-100 score.", params:[], example:'"How is Redis performing? Check health"'},
+      {name:"redis_cache_strategy", type:"read", desc:"AI cache strategy advisor. Recommends TTL, eviction policy, data structure, and patterns for your use case.", params:[{n:"use_case",d:"Description of what to cache"}], example:'"What cache strategy for user session data with 1M users?"'},
+      {name:"redis_tenant_ops", type:"write", desc:"Multi-tenant key isolation: prefix-based operations for tenant data.", params:[{n:"tenant_id",d:"Tenant identifier"},{n:"action",d:"Operation type"}], example:'"List all keys for tenant acme-corp"'},
+    ]
+  },
+  {
+    id:"rabbit", name:"RabbitNexus", port:8001, icon:"\uD83D\uDC30", color:"#FF6600", cat:"Messaging",
+    tagline:"Message Queue Operations Intelligence", dep:"RabbitMQ 3.13", driver:"aio-pika / HTTP API",
+    desc:"Complete RabbitMQ management with queue CRUD, exchange routing, dead letter handling, vhost tenant isolation, and AI routing strategy advisor.",
+    tools:[
+      {name:"rmq_queue_create", type:"write", desc:"Create queue with durability, TTL, max-length, dead letter exchange, and quorum type.", params:[{n:"name",d:"Queue name"},{n:"durable",d:"Survive restart"},{n:"message_ttl",d:"Per-message TTL"},{n:"dead_letter",d:"Enable DLQ"}], example:'"Create a durable queue orders.process with 10min TTL and dead letter"'},
+      {name:"rmq_queue_list", type:"read", desc:"List all queues with message count, consumer count, and message rates.", params:[{n:"vhost",d:"Filter by vhost"}], example:'"List all RabbitMQ queues"'},
+      {name:"rmq_queue_info", type:"read", desc:"Detailed queue metrics: rates, memory, arguments, applied policies.", params:[{n:"name",d:"Queue name"}], example:'"Show details for orders.process queue"'},
+      {name:"rmq_queue_delete", type:"write", desc:"Delete or purge a queue. Requires confirm=true.", params:[{n:"name",d:"Queue name"},{n:"action",d:"delete or purge"},{n:"confirm",d:"Must be true"}], example:'"Purge all messages from test.queue"'},
+      {name:"rmq_exchange_create", type:"write", desc:"Create exchange: direct, fanout, topic, or headers type.", params:[{n:"name",d:"Exchange name"},{n:"type",d:"direct/fanout/topic/headers"}], example:'"Create a topic exchange called events"'},
+      {name:"rmq_exchange_list", type:"read", desc:"List all exchanges with types and durability.", params:[], example:'"Show all exchanges"'},
+      {name:"rmq_binding_create", type:"write", desc:"Bind exchange to queue or another exchange with routing key.", params:[{n:"source",d:"Exchange"},{n:"destination",d:"Queue/exchange"},{n:"routing_key",d:"Pattern"}], example:'"Bind events exchange to orders queue with key order.*"'},
+      {name:"rmq_binding_list", type:"read", desc:"View all message flow paths between exchanges and queues.", params:[], example:'"Show all bindings and routing paths"'},
+      {name:"rmq_publish", type:"write", desc:"Publish message with headers, priority, TTL, and persistence.", params:[{n:"exchange",d:"Target exchange"},{n:"routing_key",d:"Routing key"},{n:"body",d:"Message body"}], example:'"Publish order created event to events exchange"'},
+      {name:"rmq_consume", type:"read", desc:"Get messages in peek (no ack), consume (ack), or reject mode.", params:[{n:"queue",d:"Queue name"},{n:"mode",d:"peek/consume/reject"},{n:"count",d:"Messages to get"}], example:'"Peek at 5 messages from orders.process"'},
+      {name:"rmq_vhost_manage", type:"write", desc:"Create/delete vhosts and manage permissions for tenant isolation.", params:[{n:"name",d:"Vhost name"},{n:"action",d:"create/delete/permissions"}], example:'"Create vhost for tenant acme-corp"'},
+      {name:"rmq_vhost_list", type:"read", desc:"List all vhosts with message counts.", params:[], example:'"Show all vhosts and their message totals"'},
+      {name:"rmq_server_overview", type:"read", desc:"Cluster status, version, message rates, and connection counts.", params:[], example:'"RabbitMQ cluster overview"'},
+      {name:"rmq_health_check", type:"read", desc:"AI health: memory/disk alarms, message backlog, partition status, consumer lag. Score 0-100.", params:[], example:'"Is RabbitMQ healthy?"'},
+      {name:"rmq_dead_letter", type:"write", desc:"Setup DLQ, inspect failed messages, replay them, or purge.", params:[{n:"action",d:"setup/inspect/replay/purge"}], example:'"Show dead letter messages and replay last 10"'},
+      {name:"rmq_routing_strategy", type:"read", desc:"AI advisor for exchange type, queue patterns, and routing key design for your use case.", params:[{n:"use_case",d:"Describe your messaging need"}], example:'"Best routing for multi-tenant ticket processing with priority?"'},
+      {name:"rmq_policy_set", type:"write", desc:"Create policies for HA, TTL, max-length on queue patterns.", params:[{n:"name",d:"Policy name"},{n:"pattern",d:"Queue pattern"},{n:"definition",d:"Policy rules"}], example:'"Set ha-all policy on production queues"'},
+      {name:"rmq_policy_list", type:"read", desc:"View all policies and their definitions.", params:[], example:'"List all RabbitMQ policies"'},
+    ]
+  },
+  {
+    id:"postgres", name:"PostgresNexus", port:8002, icon:"\uD83D\uDC18", color:"#336791", cat:"Database",
+    tagline:"PostgreSQL Operations Intelligence", dep:"PostgreSQL 16", driver:"asyncpg",
+    desc:"SQL execution with EXPLAIN ANALYZE, schema inspection, AI health scoring, index advisory, connection management, and performance tuning recommendations.",
+    tools:[
+      {name:"pg_query", type:"rw", desc:"Execute SQL with EXPLAIN ANALYZE support, parameterized queries. Blocks DROP DATABASE/SCHEMA/TRUNCATE for safety.", params:[{n:"sql",d:"SQL query"},{n:"explain",d:"Run EXPLAIN ANALYZE"},{n:"params",d:"Query parameters"}], example:'"Run SELECT count(*) FROM tickets WHERE status=open"'},
+      {name:"pg_schema", type:"read", desc:"Inspect tables, columns, data types, indexes, constraints, and table sizes.", params:[{n:"table_name",d:"Specific table or all"}], example:'"Show me the schema of the orders table"'},
+      {name:"pg_health_check", type:"read", desc:"AI health scoring: cache hit rate (>90% target), connection usage (<80%), dead tuple ratio, lock conflicts, replication lag.", params:[], example:'"PostgreSQL health check"'},
+      {name:"pg_index_advisor", type:"read", desc:"Detect unused indexes (0 scans), find sequential scans, generate CREATE INDEX and DROP INDEX recommendations.", params:[{n:"table_name",d:"Focus on specific table"}], example:'"Find missing indexes on the tickets table"'},
+      {name:"pg_connections", type:"rw", desc:"List active/idle/locked connections, connection stats, and kill idle connections by threshold.", params:[{n:"action",d:"stats/list/kill_idle"},{n:"idle_threshold_minutes",d:"Kill connections idle longer than"}], example:'"Kill PostgreSQL connections idle for more than 30 minutes"'},
+      {name:"pg_tuning_advisor", type:"read", desc:"AI postgresql.conf recommendations based on RAM, workload type (web/OLTP/OLAP/mixed), and max connections.", params:[{n:"ram_gb",d:"Server RAM"},{n:"workload",d:"web/oltp/olap/mixed"},{n:"max_connections",d:"Expected connections"}], example:'"Tune PostgreSQL for 32GB RAM, web workload, 200 connections"'},
+    ]
+  },
+  {
+    id:"k8s", name:"K8sNexus", port:8003, icon:"\u2638\uFE0F", color:"#326CE5", cat:"Orchestration",
+    tagline:"Kubernetes Cluster Intelligence", dep:"Kubernetes API", driver:"kubernetes-client",
+    desc:"Pod management, deployment scaling/rollback/restart, log retrieval, service inspection, node management, and AI cluster health analysis.",
+    tools:[
+      {name:"k8s_pods", type:"read", desc:"List pods with status, restarts, age, node, labels filter. Detects CrashLoopBackOff and pending pods.", params:[{n:"namespace",d:"K8s namespace"},{n:"label_selector",d:"Label filter"},{n:"status_filter",d:"Filter by status"}], example:'"List all pods in production namespace"'},
+      {name:"k8s_deployment", type:"rw", desc:"Get deployment info, scale replicas, rolling restart (annotation injection), rollback, and view revision history.", params:[{n:"name",d:"Deployment name"},{n:"action",d:"get/scale/restart/rollback/history"},{n:"replicas",d:"For scale action"}], example:'"Scale orders-api to 5 replicas"'},
+      {name:"k8s_logs", type:"read", desc:"Pod/container logs with tail lines count and previous container support for crash debugging.", params:[{n:"pod_name",d:"Pod name"},{n:"container",d:"Specific container"},{n:"tail_lines",d:"Number of lines"},{n:"previous",d:"Get crashed container logs"}], example:'"Get last 100 lines of logs from payments pod"'},
+      {name:"k8s_services", type:"read", desc:"List services with type (ClusterIP/NodePort/LoadBalancer), cluster IP, and port mappings.", params:[{n:"namespace",d:"K8s namespace"}], example:'"Show all services in production"'},
+      {name:"k8s_nodes", type:"rw", desc:"List nodes, cordon (mark unschedulable), uncordon, or drain for maintenance.", params:[{n:"action",d:"list/cordon/uncordon/drain"},{n:"node_name",d:"Target node"}], example:'"Drain worker-3 for maintenance"'},
+      {name:"k8s_cluster_health", type:"read", desc:"AI cluster health: node readiness, pod states, under-replicated deployments, resource pressure. Score 0-100.", params:[], example:'"Is the Kubernetes cluster healthy?"'},
+      {name:"k8s_resources", type:"read", desc:"Inspect ConfigMaps, Secrets, PVCs, Ingress, HPA, Jobs, CronJobs, StatefulSets, DaemonSets.", params:[{n:"resource_type",d:"K8s resource kind"},{n:"namespace",d:"K8s namespace"}], example:'"Show all ingress rules across namespaces"'},
+    ]
+  },
+  {
+    id:"docker", name:"DockerNexus", port:8004, icon:"\uD83D\uDC33", color:"#2496ED", cat:"Container",
+    tagline:"Container Operations Intelligence", dep:"Docker Engine", driver:"docker-py",
+    desc:"Container lifecycle management, image operations, volume/network management, system info, disk usage, and AI container health monitoring.",
+    tools:[
+      {name:"docker_containers", type:"read", desc:"List containers with status, CPU/memory usage, port mappings, and image info.", params:[{n:"show_all",d:"Include stopped"},{n:"name_filter",d:"Filter by name"}], example:'"Show all running containers"'},
+      {name:"docker_container_action", type:"write", desc:"Start, stop, restart, pause, unpause, kill, remove, inspect, top (processes), stats (resource usage).", params:[{n:"container",d:"Container name/ID"},{n:"action",d:"start/stop/restart/kill/remove/inspect/top/stats"}], example:'"Restart the nginx container"'},
+      {name:"docker_logs", type:"read", desc:"Container logs with tail line count and time-based filters.", params:[{n:"container",d:"Container name"},{n:"tail",d:"Line count"},{n:"since",d:"Time filter"}], example:'"Get last 50 lines of redis container logs"'},
+      {name:"docker_images", type:"rw", desc:"List, pull, remove, inspect, prune dangling, and view layer history.", params:[{n:"action",d:"list/pull/remove/inspect/prune/history"},{n:"image",d:"Image name:tag"}], example:'"Pull redis:7.2-alpine and show its layers"'},
+      {name:"docker_networks", type:"rw", desc:"List, create (bridge/overlay with CIDR subnet), inspect, and remove networks.", params:[{n:"action",d:"list/create/inspect/remove"},{n:"name",d:"Network name"},{n:"subnet",d:"CIDR for create"}], example:'"Create a bridge network app-net with subnet 172.28.0.0/16"'},
+      {name:"docker_volumes", type:"rw", desc:"List, create, inspect, remove, and prune unused volumes.", params:[{n:"action",d:"list/create/inspect/remove/prune"}], example:'"List all volumes and their sizes"'},
+      {name:"docker_system", type:"rw", desc:"System info (Docker version, storage driver), disk usage (df), and system prune (cleanup).", params:[{n:"action",d:"info/df/prune"}], example:'"How much disk space is Docker using?"'},
+      {name:"docker_health_check", type:"read", desc:"AI health: restarting containers, high restart counts (>5), stopped containers, memory limits. Score 0-100.", params:[], example:'"Docker health check"'},
+    ]
+  },
+  {
+    id:"nginx", name:"NginxNexus", port:8005, icon:"\uD83C\uDF10", color:"#009639", cat:"Networking",
+    tagline:"Reverse Proxy & Load Balancer Intelligence", dep:"Nginx", driver:"subprocess",
+    desc:"Production config generation with SSL, rate limiting, caching, WebSocket, security headers, SSL management, and AI upstream load balancing advisor.",
+    tools:[
+      {name:"nginx_config_generate", type:"read", desc:"Generate production server blocks with load balancing (round_robin/least_conn/ip_hash), SSL/TLS, rate limiting, proxy caching, WebSocket, security headers, gzip.", params:[{n:"server_name",d:"Domain"},{n:"upstream_servers",d:"Backend list"},{n:"ssl",d:"Enable TLS"},{n:"rate_limit",d:"Requests/sec"},{n:"websocket",d:"WS support"}], example:'"Generate Nginx config for api.santhira.com with 3 backends, SSL, rate limiting"'},
+      {name:"nginx_test_config", type:"read", desc:"Validate nginx configuration syntax without applying changes.", params:[], example:'"Test the nginx config for syntax errors"'},
+      {name:"nginx_status", type:"read", desc:"Server status: version, running processes, active listeners.", params:[], example:'"Nginx status"'},
+      {name:"nginx_ssl_manage", type:"read", desc:"Generate self-signed certs, certbot commands for Let\u2019s Encrypt, and check certificate expiry dates.", params:[{n:"action",d:"self_signed/certbot/check_expiry"},{n:"domain",d:"Domain name"}], example:'"Check SSL certificate expiry for santhira.com"'},
+      {name:"nginx_security_headers", type:"read", desc:"Generate security headers at basic/strict/paranoid levels: CSP, HSTS, CORS, X-Frame-Options, etc.", params:[{n:"level",d:"basic/strict/paranoid"},{n:"server_name",d:"Domain"}], example:'"Generate paranoid-level security headers for the trading API"'},
+      {name:"nginx_upstream_advisor", type:"read", desc:"AI load balancing advisor: API\u2192least_conn, WebSocket\u2192ip_hash, static\u2192round_robin, trading\u2192least_conn+keepalive.", params:[{n:"use_case",d:"Describe your backend"}], example:'"What load balancing strategy for a trading WebSocket API?"'},
+      {name:"nginx_health_check", type:"read", desc:"AI health: process running, config validity, SSL status, error log analysis. Score 0-100.", params:[], example:'"Is Nginx healthy?"'},
+    ]
+  },
+  {
+    id:"mongo", name:"MongoNexus", port:8006, icon:"\uD83C\uDF43", color:"#47A248", cat:"Database",
+    tagline:"MongoDB Operations Intelligence", dep:"MongoDB 7.0", driver:"motor (async)",
+    desc:"Full CRUD with aggregation pipelines, collection management, schema analysis (samples 100 docs), database operations, and AI schema design advisor.",
+    tools:[
+      {name:"mongo_query", type:"rw", desc:"Find, insert_one, insert_many, update, delete, count, distinct, and aggregate with full pipeline support.", params:[{n:"action",d:"find/insert/update/delete/count/aggregate"},{n:"collection",d:"Collection name"},{n:"filter",d:"Query filter"},{n:"pipeline",d:"Aggregation pipeline"}], example:'"Find all leads with status=qualified from today"'},
+      {name:"mongo_collection", type:"rw", desc:"List, create, drop, stats, indexes, create_index, and schema_analysis (samples 100 docs for field type coverage).", params:[{n:"action",d:"list/create/drop/stats/indexes/schema_analysis"},{n:"collection",d:"Collection name"}], example:'"Analyze the schema of the calls collection"'},
+      {name:"mongo_databases", type:"rw", desc:"List databases, get stats, or drop database (with confirmation).", params:[{n:"action",d:"list/stats/drop"}], example:'"List all MongoDB databases with sizes"'},
+      {name:"mongo_health_check", type:"read", desc:"AI health: connection usage (>80% warning), server status, replication, operations counters. Score 0-100.", params:[], example:'"MongoDB health check"'},
+      {name:"mongo_schema_advisor", type:"read", desc:"AI schema design: embed 1:1/1:few, reference 1:many, avoid unbounded arrays. Recommends indexes and patterns.", params:[{n:"use_case",d:"Describe your data model"}], example:'"Schema design for multi-tenant leads system with call history?"'},
+    ]
+  },
+  {
+    id:"kafka", name:"KafkaNexus", port:8007, icon:"\uD83D\uDCE1", color:"#231F20", cat:"Streaming",
+    tagline:"Event Streaming Intelligence", dep:"Apache Kafka", driver:"confluent-kafka",
+    desc:"Topic management, message producing/consuming, consumer group monitoring, cluster health, and AI streaming architecture advisor.",
+    tools:[
+      {name:"kafka_topic_create", type:"write", desc:"Create topic with partition count, replication factor, and configs (retention.ms, cleanup.policy, compression.type).", params:[{n:"name",d:"Topic name"},{n:"partitions",d:"Partition count"},{n:"replication",d:"Replication factor"},{n:"configs",d:"Topic configs"}], example:'"Create topic orders.events with 12 partitions and 7-day retention"'},
+      {name:"kafka_topic_list", type:"read", desc:"List all topics with partition counts.", params:[], example:'"List all Kafka topics"'},
+      {name:"kafka_topic_info", type:"read", desc:"Topic details: partitions, leaders, replicas, in-sync replicas (ISR), and topic configs.", params:[{n:"name",d:"Topic name"}], example:'"Show details for orders.events topic"'},
+      {name:"kafka_produce", type:"write", desc:"Produce messages with optional key, headers, and partition targeting.", params:[{n:"topic",d:"Topic name"},{n:"message",d:"Message payload"},{n:"key",d:"Message key"},{n:"headers",d:"Key-value headers"}], example:'"Produce an order-created event to orders.events"'},
+      {name:"kafka_consume", type:"read", desc:"Consume messages from beginning or latest offset with timeout.", params:[{n:"topic",d:"Topic name"},{n:"offset",d:"beginning or latest"},{n:"count",d:"Max messages"},{n:"timeout",d:"Wait time"}], example:'"Read last 10 messages from orders.events"'},
+      {name:"kafka_consumer_groups", type:"read", desc:"List and describe consumer groups: members, assigned partitions, current lag.", params:[{n:"group_id",d:"Specific group or all"}], example:'"Show consumer groups and their lag"'},
+      {name:"kafka_health_check", type:"read", desc:"AI health: broker count, under-replicated partitions (-20 each), leaderless partitions (-25 each). Score 0-100.", params:[], example:'"Kafka cluster health"'},
+      {name:"kafka_strategy_advisor", type:"read", desc:"AI streaming advisor: event logging\u2192log compaction+lz4, transactions\u2192exactly-once+acks=all, with Schema Registry and DLQ.", params:[{n:"use_case",d:"Describe your streaming need"}], example:'"Best Kafka setup for real-time order processing with exactly-once?"'},
+    ]
+  },
+  {
+    id:"prometheus", name:"PrometheusNexus", port:8008, icon:"\uD83D\uDD25", color:"#E6522C", cat:"Monitoring",
+    tagline:"Monitoring & Alerting Intelligence", dep:"Prometheus", driver:"httpx",
+    desc:"PromQL execution, scrape target monitoring, alert management, alert rule generation, metric exploration, and AI Grafana dashboard generation.",
+    tools:[
+      {name:"prom_query", type:"read", desc:"Execute instant or range PromQL queries with rate(), increase(), histogram_quantile(), and aggregations.", params:[{n:"query",d:"PromQL expression"},{n:"type",d:"instant or range"},{n:"start",d:"Range start"},{n:"end",d:"Range end"},{n:"step",d:"Query resolution"}], example:'"Query rate(http_requests_total[5m]) by status_code"'},
+      {name:"prom_targets", type:"read", desc:"List all scrape targets with health status, last scrape time, and labels.", params:[], example:'"Show scrape targets health"'},
+      {name:"prom_alerts", type:"read", desc:"List active and pending alerts with severity, annotations, and firing duration.", params:[], example:'"What alerts are firing right now?"'},
+      {name:"prom_alert_rule_generate", type:"read", desc:"Generate PrometheusRule YAML for common patterns: threshold above/below, absent metric, rate increase.", params:[{n:"metric",d:"Metric name"},{n:"condition",d:"above/below/absent/rate_increase"},{n:"threshold",d:"Alert threshold"},{n:"severity",d:"critical/warning"}], example:'"Create alert for error rate above 5%"'},
+      {name:"prom_metrics_explore", type:"read", desc:"Browse and search available metrics by name pattern.", params:[{n:"search",d:"Metric name pattern"}], example:'"What metrics are available for Redis?"'},
+      {name:"prom_dashboard_generate", type:"read", desc:"AI Grafana dashboard generation: web_app (request rate/errors/P99/memory), database (queries/cache/replication), messaging, kubernetes.", params:[{n:"service",d:"Service name"},{n:"dashboard_type",d:"web_app/database/messaging/kubernetes"}], example:'"Generate Grafana dashboard for the orders API"'},
+      {name:"prom_health_check", type:"read", desc:"AI health: down targets (-15 each), firing alerts (-5 each), storage retention, TSDB series count. Score 0-100.", params:[], example:'"Is the monitoring stack healthy?"'},
+    ]
+  },
+  {
+    id:"terraform", name:"TerraformNexus", port:8009, icon:"\uD83C\uDFD7\uFE0F", color:"#7B42BC", cat:"IaC",
+    tagline:"Infrastructure as Code Intelligence", dep:"Terraform CLI", driver:"subprocess",
+    desc:"State inspection, plan/apply execution, workspace management, configuration validation, and AI module generation for AWS (EKS, RDS, VPC, S3).",
+    tools:[
+      {name:"tf_state", type:"read", desc:"List resources in Terraform state with optional type filter.", params:[{n:"filter",d:"Resource type filter"}], example:'"Show all resources in Terraform state"'},
+      {name:"tf_plan", type:"read", desc:"Run terraform plan with target resource, var-file, and destroy plan support.", params:[{n:"target",d:"Specific resource"},{n:"var_file",d:"Variables file"},{n:"destroy",d:"Plan destroy"}], example:'"Run terraform plan for the database module"'},
+      {name:"tf_apply", type:"write", desc:"Apply Terraform changes. Requires confirm=true. Recommends running plan first.", params:[{n:"target",d:"Specific resource"},{n:"confirm",d:"Must be true"}], example:'"Apply the Terraform changes (confirm=true)"'},
+      {name:"tf_module_generate", type:"read", desc:"AI module generation: EKS cluster, RDS PostgreSQL, VPC, S3 bucket with environment-aware sizing (dev/prod).", params:[{n:"resource_type",d:"eks_cluster/rds_postgres/vpc/s3_bucket"},{n:"environment",d:"dev/staging/production"},{n:"region",d:"AWS region"},{n:"project_name",d:"Project name"}], example:'"Generate Terraform for RDS PostgreSQL in ap-south-1, production"'},
+      {name:"tf_validate", type:"read", desc:"Validate Terraform configuration files for syntax errors.", params:[], example:'"Validate my Terraform configs"'},
+      {name:"tf_workspaces", type:"rw", desc:"List, show current, create new, or select workspace.", params:[{n:"action",d:"list/show/new/select"},{n:"name",d:"Workspace name"}], example:'"Switch to the staging workspace"'},
+    ]
+  },
+  {
+    id:"vault", name:"VaultNexus", port:8010, icon:"\uD83D\uDD10", color:"#FFEC6E", cat:"Security",
+    tagline:"Secrets Management Intelligence", dep:"HashiCorp Vault", driver:"httpx",
+    desc:"Secret CRUD with KV v2 versioning, PKI certificate issuance, policy management with AI generation, auth methods, and secret rotation.",
+    tools:[
+      {name:"vault_secret", type:"rw", desc:"Read, write, delete, and list secrets in KV v2 engine with version history.", params:[{n:"action",d:"read/write/delete/list"},{n:"path",d:"Secret path"},{n:"data",d:"Secret key-value pairs"}], example:'"Store database credentials at path linkedeye/db"'},
+      {name:"vault_pki", type:"rw", desc:"Issue TLS certificates with TTL, list certificates, revoke, and view CA info.", params:[{n:"action",d:"issue/list/revoke/ca_info"},{n:"common_name",d:"Certificate CN"},{n:"ttl",d:"Certificate TTL"}], example:'"Issue TLS cert for api.santhira.com, valid 30 days"'},
+      {name:"vault_policy", type:"rw", desc:"List, read, write policies, or AI-generate least-privilege policies for a service.", params:[{n:"action",d:"list/read/write/generate"},{n:"name",d:"Policy name"},{n:"service_name",d:"For AI generation"}], example:'"Generate a least-privilege policy for the voicelead service"'},
+      {name:"vault_auth", type:"rw", desc:"List auth methods, enable Kubernetes/AppRole/LDAP/OIDC/token authentication.", params:[{n:"action",d:"list/enable"},{n:"method",d:"kubernetes/approle/ldap/oidc"}], example:'"Enable Kubernetes auth method"'},
+      {name:"vault_health_check", type:"read", desc:"AI health: sealed status (-50), not initialized (-50), key shares/threshold, HA cluster status. Score 0-100.", params:[], example:'"Is Vault healthy and unsealed?"'},
+      {name:"vault_rotate_secret", type:"write", desc:"Rotate a secret by creating a new KV v2 version. Requires confirm=true.", params:[{n:"path",d:"Secret path"},{n:"new_values",d:"Updated values"},{n:"confirm",d:"Must be true"}], example:'"Rotate the PostgreSQL password for LinkedEye"'},
+    ]
+  },
+  {
+    id:"elastic", name:"ElasticNexus", port:8011, icon:"\uD83D\uDD0D", color:"#FEC514", cat:"Search",
+    tagline:"ELK Stack Intelligence", dep:"Elasticsearch 8", driver:"httpx",
+    desc:"Full-text search with Query DSL, index lifecycle management, document CRUD, cluster health monitoring, and AI log analysis.",
+    tools:[
+      {name:"es_search", type:"read", desc:"Search with query string or full Query DSL including projections, sorting, and aggregations.", params:[{n:"index",d:"Index name/pattern"},{n:"query",d:"Search query or DSL"},{n:"size",d:"Result count"},{n:"sort",d:"Sort fields"},{n:"aggs",d:"Aggregations"}], example:'"Search logs-* for errors in the payments service, last 24h"'},
+      {name:"es_index", type:"rw", desc:"List, create (with mappings), delete, stats, get mapping, reindex, and refresh indexes.", params:[{n:"action",d:"list/create/delete/stats/mapping/reindex/refresh"},{n:"index",d:"Index name"}], example:'"Create an index for voice-leads with phone and status mappings"'},
+      {name:"es_document", type:"rw", desc:"Index single document, bulk NDJSON insert, get by ID, delete, and update.", params:[{n:"action",d:"index/bulk/get/delete/update"},{n:"index",d:"Index name"},{n:"doc",d:"Document body"}], example:'"Bulk insert 1000 log entries"'},
+      {name:"es_cluster_health", type:"read", desc:"AI health: red status (-30), yellow (-10), unassigned shards (-5 each), node/shard/index/document counts. Score 0-100.", params:[], example:'"Elasticsearch cluster health"'},
+      {name:"es_log_analysis", type:"read", desc:"AI log analysis: error patterns by level/service, timeline histogram, frequency trends over 1h/6h/24h/7d.", params:[{n:"index",d:"Log index pattern"},{n:"time_range",d:"1h/6h/24h/7d"},{n:"level",d:"error/warn/all"}], example:'"Analyze error patterns in logs from the last 6 hours"'},
+    ]
+  },
+  {
+    id:"git", name:"GitNexus", port:8012, icon:"\uD83D\uDD00", color:"#F05032", cat:"CI/CD",
+    tagline:"Git & CI/CD Operations Intelligence", dep:"Git CLI", driver:"subprocess",
+    desc:"Repository inspection, branch management, AI commit message generation, CI/CD pipeline generation for GitHub Actions/GitLab CI/Jenkins, and git hooks.",
+    tools:[
+      {name:"git_repo", type:"read", desc:"Inspect repository: status, log (tabular), diff stats, branches, remotes, stash, tags.", params:[{n:"action",d:"status/log/diff/branches/remotes/stash_list/tags"},{n:"count",d:"Log entries"},{n:"branch",d:"Branch filter"}], example:'"Show git log last 20 commits"'},
+      {name:"git_branch", type:"write", desc:"Create, delete (with confirm), checkout, merge (with conflict detection), and rebase.", params:[{n:"action",d:"create/delete/checkout/merge/rebase"},{n:"name",d:"Branch name"},{n:"base",d:"Base branch"}], example:'"Create feature/voicelead-api branch from develop"'},
+      {name:"git_commit_msg_generate", type:"read", desc:"AI commit message from staged changes: conventional commits (feat/fix/docs), gitmoji, or simple style.", params:[{n:"style",d:"conventional/gitmoji/simple"}], example:'"Generate a commit message for my staged changes"'},
+      {name:"git_cicd_generate", type:"read", desc:"Generate complete CI/CD pipelines for GitHub Actions, GitLab CI, Jenkins, or Bitbucket with test/lint/build/deploy/security.", params:[{n:"platform",d:"github_actions/gitlab_ci/jenkins"},{n:"project_type",d:"python/node/go/java"},{n:"features",d:"test/lint/build/deploy/docker_build/helm_deploy"}], example:'"Create GitHub Actions pipeline for Python with Docker build and EKS deploy"'},
+      {name:"git_hook_generate", type:"read", desc:"Generate git hooks for quality gates: pre-commit (lint/format/test/secrets), commit-msg (conventional), pre-push (coverage).", params:[{n:"hook_type",d:"pre-commit/commit-msg/pre-push"},{n:"checks",d:"lint/test/format/secrets_scan"}], example:'"Generate pre-commit hook with lint, test, and secrets scan"'},
+      {name:"git_analysis", type:"read", desc:"Repository analytics: contributor stats, activity (commits/day), file hotspots (most changed), branch health (stale/merged).", params:[{n:"analysis_type",d:"contributors/activity/file_hotspots/branch_health"},{n:"days",d:"Time range in days"}], example:'"Show commit activity and file hotspots for last 30 days"'},
+    ]
+  },
+  {
+    id:"linux", name:"LinuxNexus", port:8013, icon:"\uD83D\uDC27", color:"#FCC624", cat:"System",
+    tagline:"System Administration Intelligence", dep:"Linux OS", driver:"subprocess",
+    desc:"System info, process management, disk/memory analysis, network diagnostics, systemd services, cron management, and AI system health scoring.",
+    tools:[
+      {name:"sys_info", type:"read", desc:"Comprehensive system overview: hostname, OS, kernel, CPU model/cores, memory, disk, uptime, load average.", params:[], example:'"System info"'},
+      {name:"sys_process", type:"rw", desc:"Top processes by CPU/memory, find processes by name, kill by PID with signal.", params:[{n:"action",d:"top/find/kill/list"},{n:"sort_by",d:"cpu/mem"},{n:"pid",d:"PID to kill"},{n:"name",d:"Process to find"}], example:'"Show top 20 processes by memory usage"'},
+      {name:"sys_disk", type:"read", desc:"Filesystem usage with warnings (>85%), inode usage, largest directories, I/O stats.", params:[{n:"action",d:"usage/inodes/top_dirs/io_stats"},{n:"path",d:"Directory for top_dirs"}], example:'"What directories are using the most disk space?"'},
+      {name:"sys_memory", type:"rw", desc:"Memory overview with vmstat, top memory consumers, swap usage, and cache clearing (with confirm).", params:[{n:"action",d:"overview/top_consumers/swap/cache_clear"}], example:'"Which processes are using the most memory?"'},
+      {name:"sys_network", type:"read", desc:"Network interfaces, connection summary, listening ports (ss -tlnp), DNS config, routing table.", params:[{n:"action",d:"interfaces/connections/ports/dns/route"}], example:'"Show all listening ports"'},
+      {name:"sys_service", type:"rw", desc:"Systemd service management: list running, status, start, stop (with confirm), restart, enable, disable, journal logs.", params:[{n:"action",d:"list/status/start/stop/restart/enable/disable/logs"},{n:"name",d:"Service name"}], example:'"Restart the nginx service"'},
+      {name:"sys_cron", type:"rw", desc:"List crontab, add/remove entries, and AI cron expression generator from natural language.", params:[{n:"action",d:"list/add/remove/generate"},{n:"description",d:"Natural language schedule"},{n:"command",d:"Command to run"}], example:'"Generate cron for every day at 2 AM"'},
+      {name:"sys_health_check", type:"read", desc:"AI system health: load vs CPU count, memory usage (>90% critical), disk (>90%), swap, zombie processes, failed services. Score 0-100.", params:[], example:'"Full system health report"'},
+    ]
+  },
+];
+
+const CATEGORIES = ["All", ...new Set(DATA.map(s => s.cat))];
+let activeCategory = "All";
+let activeServer = null;
+let searchQuery = "";
+
+function renderPills() {
+  const el = document.getElementById("filterPills");
+  el.innerHTML = CATEGORIES.map(c =>
+    `<button class="pill ${c === activeCategory ? 'active' : ''}" onclick="setCategory('${c}')">${c}</button>`
+  ).join("");
+}
+
+function setCategory(c) {
+  activeCategory = c;
+  renderPills();
+  renderGrid();
+}
+
+function getFiltered() {
+  let list = DATA;
+  if (activeCategory !== "All") list = list.filter(s => s.cat === activeCategory);
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    list = list.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      s.tagline.toLowerCase().includes(q) ||
+      s.cat.toLowerCase().includes(q) ||
+      s.desc.toLowerCase().includes(q) ||
+      s.tools.some(t => t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q))
+    );
+  }
+  return list;
+}
+
+function renderGrid() {
+  const filtered = getFiltered();
+  const grid = document.getElementById("serverGrid");
+  const noRes = document.getElementById("noResults");
+  const countEl = document.getElementById("resultCount");
+
+  if (filtered.length === 0) {
+    grid.innerHTML = "";
+    noRes.style.display = "block";
+    countEl.textContent = "0 results";
+    return;
+  }
+  noRes.style.display = "none";
+  const totalTools = filtered.reduce((s, sv) => s + sv.tools.length, 0);
+  countEl.textContent = `${filtered.length} servers \u00B7 ${totalTools} tools`;
+
+  grid.innerHTML = filtered.map(s => `
+    <div class="server-card ${activeServer === s.id ? 'active' : ''}" style="--card-color:${s.color}" onclick="selectServer('${s.id}')">
+      <div class="card-top">
+        <div><span class="card-icon">${s.icon}</span><span class="card-name">${s.name}</span></div>
+        <span class="card-port">:${s.port}</span>
+      </div>
+      <div class="card-tagline">${s.tagline}</div>
+      <div class="card-bottom">
+        <span class="card-tools"><span style="color:${s.color}">${s.tools.length}</span> tools</span>
+        <span class="card-cat">${s.cat}</span>
+        <span class="card-dot"></span>
+      </div>
+    </div>
+  `).join("");
+}
+
+function selectServer(id) {
+  activeServer = activeServer === id ? null : id;
+  renderGrid();
+  renderDetail();
+}
+
+function renderDetail() {
+  const col = document.getElementById("detailCol");
+  if (!activeServer) {
+    col.innerHTML = '<div class="empty-detail"><div class="empty-icon">&lt;/&gt;</div><div class="empty-text">Select a server to explore its tools</div></div>';
+    return;
+  }
+  const s = DATA.find(d => d.id === activeServer);
+  col.innerHTML = `
+    <div class="detail-panel">
+      <div class="detail-header">
+        <span class="detail-title">${s.icon} ${s.name}</span>
+        <button class="detail-close" onclick="selectServer(null)">&times;</button>
+      </div>
+      <div class="detail-body">
+        <div class="detail-meta">
+          <div class="meta-row"><span class="meta-label">Endpoint</span><span class="meta-val" style="color:${s.color}">http://localhost:${s.port}/mcp</span></div>
+          <div class="meta-row"><span class="meta-label">Category</span><span class="meta-val">${s.cat}</span></div>
+          <div class="meta-row"><span class="meta-label">Backend</span><span class="meta-val">${s.dep}</span></div>
+          <div class="meta-row"><span class="meta-label">Driver</span><span class="meta-val">${s.driver}</span></div>
+          <div class="meta-row"><span class="meta-label">Tools</span><span class="meta-val" style="color:var(--accent);font-weight:700">${s.tools.length}</span></div>
+        </div>
+        <p style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:20px">${s.desc}</p>
+        <div class="detail-section">
+          <div class="section-title">Tools (${s.tools.length})</div>
+          ${s.tools.map((t, i) => `
+            <div class="tool-item" id="tool-${s.id}-${i}">
+              <div class="tool-header" onclick="toggleTool('${s.id}',${i})">
+                <span class="tool-name">${t.name}</span>
+                <span class="tool-type ${t.type}">${t.type === 'rw' ? 'R/W' : t.type.toUpperCase()}</span>
+              </div>
+              <div class="tool-expand" id="expand-${s.id}-${i}">
+                <div style="margin-bottom:8px">${t.desc}</div>
+                ${t.params && t.params.length ? '<div style="margin-bottom:8px">' + t.params.map(p => `<div class="tool-param"><span class="tool-param-name">${p.n}</span><span class="tool-param-desc">${p.d}</span></div>`).join('') + '</div>' : ''}
+                <div class="tool-example">
+                  <div class="tool-example-label">Example prompt</div>
+                  ${t.example}
+                </div>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+        <div class="detail-meta" style="margin-top:16px">
+          <div class="meta-row"><span class="meta-label">stdio</span><span class="meta-val">python ${s.id === 'rabbit' ? 'rabbit' : s.id}_nexus_mcp.py</span></div>
+          <div class="meta-row"><span class="meta-label">HTTP</span><span class="meta-val">python ${s.id === 'rabbit' ? 'rabbit' : s.id}_nexus_mcp.py --http</span></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleTool(serverId, idx) {
+  const el = document.getElementById(`expand-${serverId}-${idx}`);
+  el.classList.toggle("open");
+}
+
+document.getElementById("searchInput").addEventListener("input", (e) => {
+  searchQuery = e.target.value;
+  renderGrid();
+});
+
+// Keyboard shortcut: / to focus search
+document.addEventListener("keydown", (e) => {
+  if (e.key === "/" && document.activeElement.tagName !== "INPUT") {
+    e.preventDefault();
+    document.getElementById("searchInput").focus();
+  }
+  if (e.key === "Escape") {
+    document.getElementById("searchInput").blur();
+    if (activeServer) { activeServer = null; renderGrid(); renderDetail(); }
+  }
+});
+
+// Init
+renderPills();
+renderGrid();
+renderDetail();
+</script>
+</body>
+</html>

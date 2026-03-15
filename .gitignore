@@ -1,0 +1,42 @@
+# Sensitive credentials and keys
+.ssh/
+.aws/
+.azure/
+.docker/
+.terraform.d/
+.kube/
+.claude.json
+.bash_history
+.bash_logout
+.profile
+.bashrc
+.viminfo
+.wget-hsts
+.sudo_as_admin_successful
+.gitconfig
+
+# Large binary/archive files
+*.tar.gz
+*.gz
+*.zip
+*.pdf
+
+# Cache and local config
+.cache/
+.config/
+.local/
+.cargo/
+.rustup/
+.bun/
+.npm/
+.ollama/
+
+# Python virtual environments
+apisec-venv/
+
+# Claude internal plugins/config
+.claude/
+
+# Temp/empty files
+TrafficRole::Client,
+TrafficRole::Server,

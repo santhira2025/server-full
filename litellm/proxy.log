@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/admin/.local/bin/litellm", line 3, in <module>
+    from litellm import run_server
+  File "/home/admin/.local/lib/python3.12/site-packages/litellm/__init__.py", line 1117, in <module>
+    from .utils import client
+  File "/home/admin/.local/lib/python3.12/site-packages/litellm/utils.py", line 156, in <module>
+    from litellm.types.llms.openai import (
+  File "/home/admin/.local/lib/python3.12/site-packages/litellm/types/llms/openai.py", line 48, in <module>
+    from openai.types.responses.response import (
+ModuleNotFoundError: No module named 'openai.types.responses'

@@ -1,0 +1,50 @@
+<script>
+// ========== API ENDPOINTS ==========
+PAGES.api=function(){
+  var eps=[['Auth','POST','/api/v1/auth/login','Authenticate, return JWT'],['Auth','POST','/api/v1/auth/register','Register with email verification'],['Auth','POST','/api/v1/auth/refresh','Refresh JWT token'],['Auth','POST','/api/v1/auth/sso','SSO via SAML/OIDC'],['Learn','GET','/api/v1/paths','List learning paths + progress'],['Learn','GET','/api/v1/paths/:id/topics','Get topics in a path'],['Learn','GET','/api/v1/topics/:id','Full topic content'],['Learn','POST','/api/v1/progress','Update user progress'],['Learn','POST','/api/v1/assessments/:id/submit','Submit quiz answers'],['Labs','POST','/api/v1/labs/create','Provision sandboxed lab'],['Labs','GET','/api/v1/labs/:id/status','Check lab status'],['Labs','DELETE','/api/v1/labs/:id','Terminate lab'],['Labs','POST','/api/v1/labs/:id/validate','Validate task completion'],['Deploy','GET','/api/v1/templates','List deploy templates'],['Deploy','GET','/api/v1/templates/:id','Get template + docs'],['Deploy','POST','/api/v1/deploy','Deploy to cluster'],['Deploy','GET','/api/v1/deploy/:id/status','Deployment status'],['Deploy','POST','/api/v1/deploy/:id/rollback','Rollback deployment'],['Trouble','POST','/api/v1/troubleshoot','Submit error for analysis'],['Trouble','POST','/api/v1/troubleshoot/stream','SSE streaming analysis'],['Trouble','GET','/api/v1/errors/search','Search error catalog'],['Trouble','GET','/api/v1/errors/:id','Full error details'],['Trouble','POST','/api/v1/errors/:id/feedback','Submit fix feedback'],['Interview','GET','/api/v1/interview/questions','Get Q&A by topic/level'],['Interview','GET','/api/v1/interview/questions/:id','Full question + answer'],['Interview','POST','/api/v1/interview/mock/start','Start mock interview'],['Interview','POST','/api/v1/interview/mock/:id/answer','Submit answer, get eval'],['Interview','GET','/api/v1/interview/mock/:id/report','Interview report'],['Analyzer','POST','/api/v1/analyze/logs','Upload + analyze logs'],['Analyzer','POST','/api/v1/analyze/metrics','Analyze metrics data'],['Analyzer','GET','/api/v1/analyze/:id/report','Get analysis report'],['Expand','POST','/api/v1/expand','Submit 5-point expansion'],['Expand','GET','/api/v1/expand/:id','Get expanded content'],['Expand','GET','/api/v1/expand/:id/download','Download DOCX/PDF'],['Config','GET','/api/v1/configs','Configs by tool/env'],['Config','GET','/api/v1/configs/:id','Specific config'],['Config','POST','/api/v1/configs/customize','Customize config'],['Search','GET','/api/v1/search','Global full-text search'],['Search','POST','/api/v1/search/semantic','Semantic embedding search'],['Docs','POST','/api/v1/docs/generate','Generate documentation'],['Docs','GET','/api/v1/docs/:id/download','Download document'],['Admin','GET','/api/v1/admin/users','List org users'],['Admin','GET','/api/v1/admin/analytics','Usage analytics'],['Admin','POST','/api/v1/admin/paths/create','Create custom path'],['Admin','GET','/api/v1/admin/billing','Billing dashboard'],['Health','GET','/api/v1/health/live','Liveness probe'],['Health','GET','/api/v1/health/ready','Readiness probe']];
+  var h=hdr('API Endpoints','\u{1F50C} API Specification','47 RESTful endpoints \u00b7 JWT auth \u00b7 Rate limited \u00b7 OpenAPI 3.0 documented');
+  h+='<div class="content"><div class="search-box"><span class="si">\u{1F50D}</span><input placeholder="Search API endpoints..." oninput="filterTable(this,\'api-table\')"></div><div class="table-wrap" style="max-height:700px;overflow-y:auto"><table id="api-table"><thead><tr><th>Module</th><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead><tbody>';
+  eps.forEach(function(r){
+    var mc=r[1]==='GET'?'tag-green':r[1]==='POST'?'tag-blue':r[1]==='DELETE'?'tag-red':'tag-yellow';
+    h+='<tr><td><span class="cell-tag tag-purple">'+r[0]+'</span></td><td><span class="cell-tag '+mc+'">'+r[1]+'</span></td><td><span class="cell-code">'+r[2]+'</span></td><td style="font-size:12px">'+r[3]+'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';return h;
+};
+
+// ========== ERRORS (redirect) ==========
+PAGES.errors=function(){return PAGES.troubleshoot()};
+
+// ========== CONTENT COVERAGE ==========
+PAGES.coverage=function(){
+  var rows=[['Linux',45,'30+','60+','40+',15,12],['Networking',35,'25+','40+','35+',10,15],['Docker',40,'35+','50+','35+',12,10],['Kubernetes',65,'80+','80+','60+',25,20],['Terraform',30,'40+','40+','35+',10,8],['CI/CD',35,'30+','35+','35+',8,10],['AWS',55,'60+','60+','50+',20,18],['Azure',40,'40+','40+','30+',12,12],['GCP',35,'35+','35+','25+',10,10],['Monitoring',30,'40+','40+','30+',10,12],['Nginx',20,'25+','25+','20+',8,6],['Databases',30,'35+','45+','25+',10,8],['Security',25,'20+','30+','25+',8,10],['AIOps/MLOps',20,'15+','20+','25+',6,8],['Maven/Build',12,'10+','15+','15+',4,4]];
+  var cards=[{cat:'Kubernetes',topics:65,configs:80,errors:80,qs:60,c:'--accent'},{cat:'AWS Cloud',topics:55,configs:60,errors:60,qs:50,c:'--blue'},{cat:'Linux',topics:45,configs:30,errors:60,qs:40,c:'--orange'},{cat:'Docker',topics:40,configs:35,errors:50,qs:35,c:'--purple'},{cat:'Azure',topics:40,configs:40,errors:40,qs:30,c:'--yellow'},{cat:'CI/CD',topics:35,configs:30,errors:35,qs:35,c:'--green'}];
+  var h=hdr('Content Matrix','\u{1F4C8} Content Coverage Matrix','517 topics \u00b7 520+ configs \u00b7 615+ errors \u00b7 485+ Q&A \u00b7 168 labs \u00b7 163 diagrams');
+  h+='<div class="content">'+tbl(['Category','Topics','Configs','Errors','Interview Qs','Labs','Diagrams'],rows.map(function(r){return '<tr><td><strong>'+r[0]+'</strong></td>'+r.slice(1).map(function(v){return '<td style="font-family:JetBrains Mono,monospace;text-align:center;color:var(--accent)">'+v+'</td>'}).join('')+'</tr>'}).join('')+'<tr style="background:var(--bg4)"><td><strong>TOTAL</strong></td><td style="font-family:JetBrains Mono,monospace;text-align:center;color:var(--accent);font-weight:700">517</td><td style="font-family:JetBrains Mono,monospace;text-align:center;color:var(--blue);font-weight:700">520+</td><td style="font-family:JetBrains Mono,monospace;text-align:center;color:var(--red);font-weight:700">615+</td><td style="font-family:JetBrains Mono,monospace;text-align:center;color:var(--purple);font-weight:700">485+</td><td style="font-family:JetBrains Mono,monospace;text-align:center;color:var(--orange);font-weight:700">168</td><td style="font-family:JetBrains Mono,monospace;text-align:center;color:var(--yellow);font-weight:700">163</td></tr>');
+  h+='<h3 style="font-size:15px;margin:24px 0 16px">Coverage by Topic Depth</h3><div class="grid grid-3">';
+  cards.forEach(function(c){
+    h+='<div class="card"><h3 style="color:var('+c.c+')">'+c.cat+'</h3>';
+    ['Topics','Configs','Errors','Interview'].forEach(function(l,i){
+      var v=[c.topics,c.configs,c.errors,c.qs][i];
+      h+='<div class="stat-bar"><div style="min-width:70px;font-size:11px">'+l+'</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:'+v+'%;background:var('+c.c+')"></div></div><div class="stat-bar-label">'+v+'+</div></div>';
+    });
+    h+='</div>';
+  });
+  h+='</div></div>';return h;
+};
+
+// ========== ROADMAP ==========
+PAGES.roadmap=function(){
+  var phases=[{ph:'Phase 1: Foundation',time:'Month 1\u20132',items:['K8s cluster setup','CI/CD pipeline','Auth (Keycloak)','Database schema','API Gateway','Frontend shell'],c:'--accent'},{ph:'Phase 2: Learning Engine',time:'Month 2\u20134',items:['Learning paths','Topic content system','Assessment engine','First 50 topics','Search service'],c:'--blue'},{ph:'Phase 3: Troubleshooter',time:'Month 3\u20135',items:['Error catalog schema','AI/LLM integration (Ollama)','Knowledge graph','2,000 errors cataloged'],c:'--red'},{ph:'Phase 4: Interview Engine',time:'Month 4\u20136',items:['Q&A database','Mock interview AI','500 questions + answers','Scoring system'],c:'--purple'},{ph:'Phase 5: Deployment Engine',time:'Month 5\u20137',items:['Template renderer','Helm/TF execution','30 templates','One-click UI'],c:'--orange'},{ph:'Phase 6: Lab System',time:'Month 6\u20138',items:['k3s provisioner','Task validation','50 labs','Web terminal'],c:'--green'},{ph:'Phase 7: Advanced',time:'Month 7\u20139',items:['Log analyzer','5-Point expander','Config vault 500+','Doc generator'],c:'--yellow'},{ph:'Phase 8: Scale & Launch',time:'Month 9\u201312',items:['500+ topics','10K errors','Enterprise features','Mobile app','Public launch'],c:'--pink'}];
+  var revenue=[{stream:'Pro Subs',val:'$120K',desc:'$29/mo individual'},{stream:'Enterprise',val:'$100K',desc:'Custom pricing, SLA'},{stream:'Team Plans',val:'$80K',desc:'$19/user/mo'},{stream:'Training',val:'$40K',desc:'Corporate programs'},{stream:'Consulting',val:'$30K',desc:'Arch reviews, assessments'},{stream:'Certifications',val:'$20K',desc:'Paid exams + badges'},{stream:'API Access',val:'$15K',desc:'Pay-per-call'},{stream:'Marketplace',val:'$10K',desc:'3rd-party templates'}];
+  var h=hdr('Roadmap & Revenue','\u{1F5FA}\uFE0F Roadmap & Revenue','8 phases \u00b7 12 months \u00b7 $415K Year 1 target');
+  h+='<div class="content"><h3 style="font-size:15px;margin-bottom:16px">Implementation Phases</h3>';
+  phases.forEach(function(p){
+    h+='<div class="card" style="margin-bottom:12px;border-left:3px solid var('+p.c+')"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h3 style="color:var('+p.c+')">'+p.ph+'</h3><span class="cell-tag tag-green">'+p.time+'</span></div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+    p.items.forEach(function(i){h+='<span class="pill" style="background:var('+p.c+')15;color:var('+p.c+');border:1px solid var('+p.c+')33">'+i+'</span>'});
+    h+='</div></div>';
+  });
+  h+='<h3 style="font-size:15px;margin:24px 0 16px">Revenue Model \u2014 Year 1 Target: $415,000</h3><div class="grid grid-4">';
+  revenue.forEach(function(r){h+='<div class="card"><div class="metric" style="color:var(--accent)">'+r.val+'</div><h3>'+r.stream+'</h3><div class="desc">'+r.desc+'</div></div>'});
+  h+='</div></div>';return h;
+};
+</script>

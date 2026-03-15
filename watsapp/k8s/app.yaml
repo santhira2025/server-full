@@ -1,0 +1,68 @@
+---
+# WhatsApp Agent Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whatsapp-agent
+  namespace: whatsapp-agent
+  labels:
+    app: whatsapp-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: whatsapp-agent
+  template:
+    metadata:
+      labels:
+        app: whatsapp-agent
+    spec:
+      containers:
+        - name: whatsapp-agent
+          image: registry.gitlab.com/saasproduct2026/watsapp-agent:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: whatsapp-agent-config
+            - secretRef:
+                name: whatsapp-agent-secrets
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      imagePullSecrets:
+        - name: gitlab-registry-secret
+
+---
+# WhatsApp Agent Service - NodePort for external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: whatsapp-agent-service
+  namespace: whatsapp-agent
+spec:
+  type: NodePort
+  selector:
+    app: whatsapp-agent
+  ports:
+    - port: 80
+      targetPort: 8000
+      nodePort: 30090
+      protocol: TCP

@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+venv311/
+
+# Env files (keep example)
+.env
+.env.*
+!.env.example
+
+# Databases / archives / logs
+*.db
+*.db.bak
+*.log
+*.zip
+
+# Runtime data
+data/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+
+# Tooling
+.claude/
+
+# Rust build artifacts
+target/
+**/target/
+
+# eBPF build artifacts
+sensor/ebpf/bpf/*.o
+sensor/ebpf/bpf/vmlinux.h
+
+# OS
+.DS_Store

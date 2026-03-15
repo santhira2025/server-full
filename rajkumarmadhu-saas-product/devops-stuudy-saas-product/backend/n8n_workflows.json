@@ -1,0 +1,158 @@
+{
+  "name": "Insights LM: Traffic & Podcast Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-remediation",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Webhook: Receive Anomaly",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "claude-3-7-sonnet-20250219",
+        "prompt": "=Analyze the following anomalous traffic logs and generate a mitigation strategy:\\n{{ $json.body.logs }}"
+      },
+      "name": "Claude 3.7: Analyze Threat",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.cloudflare.com/client/v4/zones/{{$env.CF_ZONE_ID}}/firewall/rules",
+        "authentication": "headerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.CF_API_KEY}}"
+            }
+          ]
+        },
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "block"
+            },
+            {
+              "name": "filter",
+              "value": "=(ip.src eq {{ $node[\"Webhook: Receive Anomaly\"].json.body.attacker_ip }})"
+            }
+          ]
+        }
+      },
+      "name": "Cloudflare API: Block IP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-podcast",
+        "options": {}
+      },
+      "name": "Webhook: Generate Deep Dive",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 500]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT chunk_text FROM vector_store ORDER BY embedding <=> '[...]' LIMIT 10;"
+      },
+      "name": "Supabase pgvector: Retrieve Logs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-pro",
+        "prompt": "You are a podcast host. Create an audio script summarizing these logs: {{$json.query_results}}"
+      },
+      "name": "Gemini API: Text-to-Speech",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 500]
+    },
+    {
+      "parameters": {
+        "command": "ffmpeg -f f32le -ar 24000 -ac 1 -i raw_audio.pcm -b:a 192k output.mp3"
+      },
+      "name": "FFmpeg: Convert to MP3",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [850, 500]
+    }
+  ],
+  "connections": {
+    "Webhook: Receive Anomaly": {
+      "main": [
+        [
+          {
+            "node": "Claude 3.7: Analyze Threat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude 3.7: Analyze Threat": {
+      "main": [
+        [
+          {
+            "node": "Cloudflare API: Block IP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Generate Deep Dive": {
+      "main": [
+        [
+          {
+            "node": "Supabase pgvector: Retrieve Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase pgvector: Retrieve Logs": {
+      "main": [
+        [
+          {
+            "node": "Gemini API: Text-to-Speech",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini API: Text-to-Speech": {
+      "main": [
+        [
+          {
+            "node": "FFmpeg: Convert to MP3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

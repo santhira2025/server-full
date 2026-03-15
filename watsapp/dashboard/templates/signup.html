@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account | Argus AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #25D366;
+            --bg: #f8fafc;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            padding: 3rem;
+            border-radius: 2.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 40px 100px rgba(0, 0, 0, 0.04);
+            text-align: center;
+        }
+
+        .header {
+            margin-bottom: 2.5rem;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-top: 0.5rem;
+            font-weight: 700;
+            color: #475569;
+        }
+
+        .form-grid {
+            text-align: left;
+            display: grid;
+            gap: 1.25rem;
+        }
+
+        .group {}
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(37, 211, 102, 0.05);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1.2rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-weight: 800;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+            transition: 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(37, 211, 102, 0.2);
+        }
+
+        .footer {
+            margin-top: 2rem;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .footer a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="toast" class="toast"></div>
+
+    <div class="card">
+        <div class="header">
+            <div class="logo">ARGUS<span>.</span>AI</div>
+            <h1>Start your free trial</h1>
+        </div>
+
+        <form id="signupForm" class="form-grid">
+            <div class="group">
+                <label>Business Name</label>
+                <input type="text" id="business_name" placeholder="e.g. Fintech Solutions" required>
+            </div>
+
+            <div class="group">
+                <label>Work Email</label>
+                <input type="email" id="email" placeholder="you@company.com" required>
+            </div>
+
+            <div class="group">
+                <label>Secret Password</label>
+                <input type="password" id="password" placeholder="Min. 8 characters" required>
+            </div>
+
+            <button type="submit" class="btn">Create Workspace →</button>
+        </form>
+
+        <div class="footer">
+            Already have an account? <a href="/dashboard/login">Sign in</a>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById( 'signupForm' );
+        const toast = document.getElementById( 'toast' );
+
+        form.onsubmit = async ( e ) => {
+            e.preventDefault();
+            const email = document.getElementById( 'email' ).value;
+            const business_name = document.getElementById( 'business_name' ).value;
+            const password = document.getElementById( 'password' ).value;
+
+            try {
+                const response = await fetch( '/dashboard/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify( { email, business_name, password } )
+                } );
+
+                if ( response.ok ) {
+                    window.location.href = '/dashboard/';
+                } else {
+                    const data = await response.json();
+                    toast.innerText = data.detail || 'Signup failed';
+                    toast.style.display = 'block';
+                    setTimeout( () => toast.style.display = 'none', 3000 );
+                }
+            } catch ( err ) {
+                toast.innerText = 'Network error';
+                toast.style.display = 'block';
+            }
+        };
+    </script>
+</body>
+
+</html>

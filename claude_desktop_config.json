@@ -1,0 +1,82 @@
+{
+  "mcpServers": {
+    "redis-nexus": {
+      "command": "python",
+      "args": ["redis_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus",
+      "env": { "REDIS_URL": "redis://localhost:6379" }
+    },
+    "rabbit-nexus": {
+      "command": "python",
+      "args": ["rabbit_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus",
+      "env": { "RABBITMQ_HOST": "localhost" }
+    },
+    "postgres-nexus": {
+      "command": "python",
+      "args": ["postgres_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus",
+      "env": { "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/postgres" }
+    },
+    "k8s-nexus": {
+      "command": "python",
+      "args": ["k8s_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus"
+    },
+    "docker-nexus": {
+      "command": "python",
+      "args": ["docker_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus"
+    },
+    "nginx-nexus": {
+      "command": "python",
+      "args": ["nginx_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus"
+    },
+    "mongo-nexus": {
+      "command": "python",
+      "args": ["mongo_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus",
+      "env": { "MONGO_URI": "mongodb://localhost:27017" }
+    },
+    "kafka-nexus": {
+      "command": "python",
+      "args": ["kafka_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus",
+      "env": { "KAFKA_BOOTSTRAP": "localhost:9092" }
+    },
+    "prometheus-nexus": {
+      "command": "python",
+      "args": ["prometheus_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus",
+      "env": { "PROMETHEUS_URL": "http://localhost:9090" }
+    },
+    "terraform-nexus": {
+      "command": "python",
+      "args": ["terraform_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus"
+    },
+    "vault-nexus": {
+      "command": "python",
+      "args": ["vault_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus",
+      "env": { "VAULT_ADDR": "http://localhost:8200", "VAULT_TOKEN": "root" }
+    },
+    "elastic-nexus": {
+      "command": "python",
+      "args": ["elastic_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus",
+      "env": { "ELASTICSEARCH_URL": "http://localhost:9200" }
+    },
+    "git-nexus": {
+      "command": "python",
+      "args": ["git_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus"
+    },
+    "linux-nexus": {
+      "command": "python",
+      "args": ["linux_nexus_mcp.py"],
+      "cwd": "/opt/devops-nexus"
+    }
+  }
+}

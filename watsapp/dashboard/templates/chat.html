@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - {{ phone_number }} | {{ business_name }}</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+
+<body class="chat-fullview">
+    <header class="chat-topbar">
+        <a href="/dashboard/" class="back-btn"><i class="ri-arrow-left-line"></i> Back</a>
+        <div class="chat-contact-info">
+            <h2 id="contactName">Loading...</h2>
+            <div class="chat-meta">
+                <span class="badge" id="leadStage">--</span>
+                <span>Score: <strong id="leadScore">--</strong>/100</span>
+                <span id="sentiment">--</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="chat-fullview-messages" id="chatMessages">
+        <!-- Messages loaded here -->
+    </div>
+
+    <div class="chat-fullview-input">
+        <input type="text" id="manualMessage" placeholder="Type a manual reply..."
+            onkeydown="if(event.key==='Enter')sendMessage()">
+        <button onclick="sendMessage()" aria-label="Send Message"><i class="ri-send-plane-fill"></i></button>
+    </div>
+
+    <script>
+        const phoneNumber = "{{ phone_number }}";
+
+        async function loadChat() {
+            const res = await fetch( `/dashboard/api/conversations/${ phoneNumber }/messages` );
+            const data = await res.json();
+
+            if ( data.status === "ok" ) {
+                const convo = data.conversation;
+                document.getElementById( "contactName" ).textContent = convo.customer_name || phoneNumber;
+                document.getElementById( "leadStage" ).textContent = convo.lead_stage || "new";
+                document.getElementById( "leadScore" ).textContent = convo.lead_score || 0;
+                document.getElementById( "sentiment" ).textContent = convo.sentiment || "neutral";
+
+                const container = document.getElementById( "chatMessages" );
+                container.innerHTML = data.messages.map( msg => `
+                    <div class="msg ${ msg.direction === 'inbound' ? 'msg-in' : 'msg-out' }">
+                        <div class="msg-bubble">
+                            <p>${ msg.content }</p>
+                            <span class="msg-time">${ new Date( msg.timestamp ).toLocaleTimeString() }</span>
+                            ${ msg.intent_detected ? `<span class="msg-intent">${ msg.intent_detected }</span>` : "" }
+                        </div>
+                    </div>
+                `).join( "" );
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById( "manualMessage" );
+            const text = input.value.trim();
+            if ( !text ) return;
+
+            await fetch( "/dashboard/api/send-message", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify( { phone_number: phoneNumber, message: text } ),
+            } );
+
+            input.value = "";
+            setTimeout( loadChat, 1000 );
+        }
+
+        loadChat();
+        setInterval( loadChat, 15000 );
+    </script>
+</body>
+
+</html>

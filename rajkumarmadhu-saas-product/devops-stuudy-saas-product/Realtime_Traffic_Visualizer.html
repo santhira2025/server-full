@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Traffic Visualization & AI Study</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #030407;
+            --glass-bg: rgba(20, 25, 40, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #00f0ff;
+            --accent-magenta: #ff0055;
+            --accent-purple: #8a2be2;
+            --text-main: #f0f4f8;
+            --text-muted: #8b99b5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #0B0E14 0%, var(--bg-color) 100%);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar */
+        nav {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            z-index: 10;
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .nav-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            background: rgba(0, 240, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.9);
+                box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.7);
+            }
+
+            100% {
+                transform: scale(1.5);
+                box-shadow: 0 0 0 6px rgba(0, 240, 255, 0);
+            }
+        }
+
+        /* Main Dashboard Layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            flex: 1;
+            height: calc(100vh - 70px);
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* Visualization Area */
+        .viz-container {
+            position: relative;
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.5);
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .viz-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 5;
+            display: flex;
+            gap: 15px;
+        }
+
+        .metric-card {
+            background: rgba(10, 15, 25, 0.6);
+            border: 1px solid var(--glass-border);
+            padding: 15px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+        }
+
+        .metric-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .v-cyan {
+            color: var(--accent-cyan);
+        }
+
+        .v-magenta {
+            color: var(--accent-magenta);
+        }
+
+        /* AI Study Sidebar */
+        .ai-sidebar {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .agent-badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: rgba(138, 43, 226, 0.2);
+            color: #d1abff;
+            border-radius: 10px;
+            border: 1px solid rgba(138, 43, 226, 0.4);
+        }
+
+        .insights-feed {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Scrollbar Styling */
+        .insights-feed::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .insights-feed::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .insights-feed::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 3px;
+        }
+
+        .insight-card {
+            background: rgba(3, 4, 7, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--accent-purple);
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-muted);
+            transform: translateX(20px);
+            opacity: 0;
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        .insight-card.critical {
+            border-left-color: var(--accent-magenta);
+        }
+
+        .insight-card span.highlight {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .card-time {
+            font-size: 11px;
+            color: #5d6b89;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        @keyframes slideIn {
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .typing-indicator {
+            padding: 16px;
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .dot {
+            width: 5px;
+            height: 5px;
+            background: var(--accent-purple);
+            border-radius: 50%;
+            animation: blink 1.4s infinite both;
+        }
+
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes blink {
+
+            0%,
+            80%,
+            100% {
+                opacity: 0.2;
+                transform: scale(0.8);
+            }
+
+            40% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        /* Interactive Controls */
+        .control-panel {
+            padding: 20px;
+            border-top: 1px solid var(--glass-border);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.4), rgba(0, 240, 255, 0.2));
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        .btn.primary:hover {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="logo">Insights LM: Traffic Studio</div>
+        <div class="nav-status">
+            <div class="pulse-dot"></div>
+            LANGGRAPH + CEREBRAS SYNC: ACTIVE
+        </div>
+    </nav>
+
+    <div class="dashboard">
+        <!-- Visualization Area -->
+        <div class="viz-container" id="viz-container">
+            <div class="viz-overlay">
+                <div class="metric-card">
+                    <div class="metric-title">Ingestion Rate</div>
+                    <div class="metric-value v-cyan" id="m-rate">14,240 <span
+                            style="font-size:14px;color:#8b99b5">req/s</span></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-title">Anomaly Index</div>
+                    <div class="metric-value v-magenta" id="m-anomaly">0.02%</div>
+                </div>
+            </div>
+            <canvas id="trafficCanvas"></canvas>
+        </div>
+
+        <!-- AI Study Panel Area -->
+        <div class="ai-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-title">
+                    Deep Research Agent
+                    <span class="agent-badge">Live Study</span>
+                </div>
+            </div>
+            <div class="insights-feed" id="feed">
+                <!-- Insights injected by JS -->
+            </div>
+            <div class="typing-indicator" id="typing">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                Analyzing routing anomalies...
+            </div>
+            <div class="control-panel">
+                <button class="btn" onclick="generatePodcast()">🎙️ Generate Podcast</button>
+                <button class="btn" onclick="studyImage()">🖼️ Study Image</button>
+            </div>
+            <div class="control-panel" style="border-top: none; padding-top: 0;">
+                <button class="btn">Pause Analysis</button>
+                <button class="btn primary" onclick="triggerAnomaly()">Trigger Chaos Demo</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // -- Canvas Visualizer Logic --
+        const canvas = document.getElementById( 'trafficCanvas' );
+        const ctx = canvas.getContext( '2d' );
+        const container = document.getElementById( 'viz-container' );
+
+        let width, height;
+
+        function resizeCanvas() {
+            width = container.clientWidth;
+            height = container.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener( 'resize', resizeCanvas );
+        resizeCanvas();
+
+        // Node points representing servers, clients, databases
+        const nodes = [
+            { x: 0.2, y: 0.4, label: 'US-East Edge', type: 'edge' },
+            { x: 0.2, y: 0.6, label: 'EU-West Edge', type: 'edge' },
+            { x: 0.5, y: 0.3, label: 'API Gateway', type: 'core' },
+            { x: 0.5, y: 0.7, label: 'Auth Service', type: 'core' },
+            { x: 0.8, y: 0.5, label: 'Supabase Vector DB', type: 'db' },
+            { x: 0.8, y: 0.2, label: 'Cerebras Inference', type: 'db' },
+        ];
+
+        let connections = [];
+        let particles = [];
+
+        // Build connections
+        nodes.forEach( ( n1, i ) => {
+            nodes.forEach( ( n2, j ) => {
+                if ( i < j ) {
+                    // Create selective topology
+                    if ( ( n1.type === 'edge' && n2.type === 'core' ) ||
+                        ( n1.type === 'core' && n2.type === 'db' ) ||
+                        ( n1.label === 'API Gateway' && n2.label === 'Auth Service' ) ) {
+                        connections.push( { from: i, to: j } );
+                    }
+                }
+            } );
+        } );
+
+        class Particle {
+            constructor ( fromIdx, toIdx, speed, isAnomaly ) {
+                this.from = nodes[fromIdx];
+                this.to = nodes[toIdx];
+                this.progress = 0;
+                this.speed = speed;
+                this.isAnomaly = isAnomaly;
+            }
+
+            draw() {
+                const x = this.from.x * width + ( this.to.x * width - this.from.x * width ) * this.progress;
+                const y = this.from.y * height + ( this.to.y * height - this.from.y * height ) * this.progress;
+
+                ctx.beginPath();
+                ctx.arc( x, y, this.isAnomaly ? 4 : 2, 0, Math.PI * 2 );
+                ctx.fillStyle = this.isAnomaly ? '#ff0055' : '#00f0ff';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            update() {
+                this.progress += this.speed;
+                return this.progress >= 1;
+            }
+        }
+
+        let isChaosMode = false;
+
+        async function triggerAnomaly() {
+            // First, start the visual anomaly effects
+            isChaosMode = true;
+            document.getElementById( 'm-anomaly' ).innerText = '14.8%';
+            document.getElementById( 'm-anomaly' ).style.color = '#ff0055';
+            addInsight( "⚠️ CRITICAL", "Sudden 14k spike in unauthorized access attempts originating from US-East boundary. Sending payload to n8n webhook...", true );
+
+            try {
+                // Call the actual backend simulator for the n8n webhook
+                const response = await fetch( 'http://localhost:8000/api/trigger-chaos', {
+                    method: 'POST'
+                } );
+                if ( !response.ok ) throw new Error( "API failed" );
+                const resData = await response.json();
+
+                // Once n8n processes the anomaly and mitigates it, show the prompt
+                addInsight( "✅ n8n Mitigation Deployed", `Action: <b>${ resData.data.action }</b><br>Reason: ${ resData.data.reason }.<br>Latency to fix: ${ resData.data.latency }. Return to normal routing.`, false );
+
+                setTimeout( () => {
+                    isChaosMode = false;
+                    document.getElementById( 'm-anomaly' ).innerText = '0.04%';
+                    document.getElementById( 'm-anomaly' ).style.color = '#8b99b5';
+                }, 1500 );
+
+            } catch ( err ) {
+                // Fallback if the backend script isn't running
+                addInsight( "❌ Webhook Error", "n8n Webhook failed to execute. Manual intervention required!", true );
+                setTimeout( () => {
+                    isChaosMode = false;
+                    document.getElementById( 'm-anomaly' ).innerText = '0.04%';
+                    document.getElementById( 'm-anomaly' ).style.color = '#8b99b5';
+                }, 5000 );
+            }
+        }
+
+        function drawNetwork() {
+            ctx.clearRect( 0, 0, width, height );
+
+            // Draw Lines
+            ctx.lineWidth = 1;
+            connections.forEach( conn => {
+                const n1 = nodes[conn.from];
+                const n2 = nodes[conn.to];
+                ctx.beginPath();
+                ctx.moveTo( n1.x * width, n1.y * height );
+                ctx.lineTo( n2.x * width, n2.y * height );
+
+                // Gradient line based on chaos
+                let grad = ctx.createLinearGradient( n1.x * width, n1.y * height, n2.x * width, n2.y * height );
+                grad.addColorStop( 0, 'rgba(0, 240, 255, 0.05)' );
+                grad.addColorStop( 1, isChaosMode ? 'rgba(255, 0, 85, 0.1)' : 'rgba(138, 43, 226, 0.05)' );
+                ctx.strokeStyle = grad;
+                ctx.stroke();
+            } );
+
+            // Handle Particles
+            if ( Math.random() < ( isChaosMode ? 0.8 : 0.3 ) ) {
+                const conn = connections[Math.floor( Math.random() * connections.length )];
+                particles.push( new Particle( conn.from, conn.to, Math.random() * 0.01 + 0.005, isChaosMode && Math.random() > 0.5 ) );
+            }
+
+            for ( let i = particles.length - 1; i >= 0; i-- ) {
+                particles[i].draw();
+                if ( particles[i].update() ) {
+                    particles.splice( i, 1 );
+                }
+            }
+
+            // Draw Nodes
+            nodes.forEach( node => {
+                const x = node.x * width;
+                const y = node.y * height;
+
+                // Glow ring
+                ctx.beginPath();
+                ctx.arc( x, y, 15, 0, Math.PI * 2 );
+                ctx.fillStyle = node.type === 'db' ? 'rgba(138, 43, 226, 0.1)' : 'rgba(0, 240, 255, 0.1)';
+                ctx.fill();
+
+                // Core
+                ctx.beginPath();
+                ctx.arc( x, y, 6, 0, Math.PI * 2 );
+                ctx.fillStyle = node.type === 'db' ? '#8a2be2' : ( node.type === 'core' ? '#ffffff' : '#00f0ff' );
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Label
+                ctx.fillStyle = '#8b99b5';
+                ctx.font = '11px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText( node.label, x, y + 28 );
+            } );
+
+            // Update stats subtly
+            if ( !isChaosMode && Math.random() < 0.1 ) {
+                const base = 14200;
+                document.getElementById( 'm-rate' ).innerHTML = ( base + Math.floor( Math.random() * 200 ) ) + ' <span style="font-size:14px;color:#8b99b5">req/s</span>';
+            }
+
+            requestAnimationFrame( drawNetwork );
+        }
+
+        drawNetwork();
+
+        // -- AI Insights Logic --
+        const feed = document.getElementById( 'feed' );
+
+        const insights = [
+            { t: "Deep Synthesis Start", m: "LangGraph supervisor agent has spun up 4 micro-agents to monitor edge latency. Average pipeline response is <span class='highlight'>28ms</span>." },
+            { t: "Cerebras Inference", m: "Vector embeddings for recent payload inspection completed. Evaluated 1.2M logs against baseline behavior models." },
+            { t: "Efficiency Optimization", m: "Detected redundant queries hitting Supabase Vector DB. Auto-generated caching rule via n8n automation." }
+        ];
+
+        let index = 0;
+
+        function addInsight( title, message, critical = false ) {
+            const time = new Date().toLocaleTimeString( [], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' } );
+            const card = document.createElement( 'div' );
+            card.className = `insight-card ${ critical ? 'critical' : '' }`;
+            card.innerHTML = `
+                <span class="card-time">${ time } — ${ title }</span>
+                ${ message }
+            `;
+            feed.insertBefore( card, feed.firstChild );
+        }
+
+        setInterval( () => {
+            if ( !isChaosMode && index < insights.length ) {
+                addInsight( insights[index].t, insights[index].m );
+                index++;
+            } else if ( !isChaosMode && Math.random() > 0.7 ) {
+                addInsight( "Routine Check", "All systems nominal. Model confidence score at <span class='highlight'>99.8%</span>." );
+            }
+        }, 8000 );
+
+        // Initial pop
+        setTimeout( () => addInsight( "System Boot", "Connected to Insights LM orchestration layer. LiveKit audio streams standing by.", false ), 1000 );
+
+        // -- NotebookLM Style Features --
+        async function generatePodcast() {
+            addInsight( "🎙️ Podcast Generation", "Aggregating recent traffic anomalies and Supabase vector logs...", false );
+
+            try {
+                const response = await fetch( 'http://localhost:8000/api/generate-podcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify( { timeframe_minutes: 60, focus_area: "anomalies" } )
+                } );
+
+                if ( !response.ok ) throw new Error( "API failed" );
+                const data = await response.json();
+
+                addInsight( "⚙️ Workflow Initiated", `Task ID: ${ data.task_id }. Estimated time: ${ data.estimated_time_sec }s.`, false );
+
+                // Simulate the async wait for the background task to complete
+                setTimeout( () => {
+                    const time = new Date().toLocaleTimeString( [], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' } );
+                    const card = document.createElement( 'div' );
+                    card.className = `insight-card`;
+                    card.style.borderLeftColor = '#00f0ff';
+                    card.innerHTML = `
+                        <span class="card-time">${ time } — 🎧 Audio Overview Ready</span>
+                        <div style="margin-top:10px; padding:10px; background:rgba(0,0,0,0.5); border-radius:8px; display:flex; align-items:center; gap:10px;">
+                            <div style="width:30px; height:30px; border-radius:50%; background:var(--accent-cyan); display:flex; justify-content:center; align-items:center; cursor:pointer;" onclick="this.innerHTML='⏸'">▶️</div>
+                            <div style="flex:1; height:4px; background:rgba(255,255,255,0.2); border-radius:2px;">
+                                <div style="width:15%; height:100%; background:var(--accent-cyan); border-radius:2px;"></div>
+                            </div>
+                            <span style="font-size:11px; color:var(--text-muted)">00:00 / 08:34</span>
+                        </div>
+                        <div style="margin-top:8px; font-size:12px; color:var(--accent-cyan)">Hosts: AI Security Agent & Network Analyst</div>
+                    `;
+                    feed.insertBefore( card, feed.firstChild );
+                }, 5500 );
+
+            } catch ( err ) {
+                addInsight( "❌ Connection Error", "Could not reach FastAPI backend. Is it running?", true );
+            }
+        }
+
+        async function studyImage() {
+            addInsight( "🖼️ Image Analysis", "Forwarding topology diagram to vision endpoint...", false );
+
+            try {
+                // Create a dummy image blob to emulate a real file upload
+                const canvas = document.createElement( 'canvas' );
+                canvas.width = 10; canvas.height = 10;
+                const blob = await new Promise( resolve => canvas.toBlob( resolve, 'image/png' ) );
+
+                const formData = new FormData();
+                formData.append( 'file', blob, 'topology.png' );
+
+                const response = await fetch( 'http://localhost:8000/api/study-image', {
+                    method: 'POST',
+                    body: formData
+                } );
+
+                if ( !response.ok ) throw new Error( "API failed" );
+                const data = await response.json();
+
+                const time = new Date().toLocaleTimeString( [], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' } );
+                const card = document.createElement( 'div' );
+                card.className = `insight-card`;
+                card.innerHTML = `
+                    <span class="card-time">${ time } — 👁️ ${ data.message }</span>
+                    <p style="margin-bottom: 5px; color: var(--accent-magenta);">Confidence Score: ${ ( data.data.confidence_score * 100 ).toFixed( 1 ) }%</p>
+                    <ul style="margin-top:8px; margin-left:15px; font-size:13px; color:var(--text-muted);">
+                        ${ data.data.findings.map( f => `<li style="margin-bottom: 4px;">${ f }</li>` ).join( '' ) }
+                    </ul>
+                `;
+                feed.insertBefore( card, feed.firstChild );
+
+            } catch ( err ) {
+                addInsight( "❌ Connection Error", "Could not reach FastAPI backend. Is it running?", true );
+            }
+        }
+
+    </script>
+</body>
+
+</html>

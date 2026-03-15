@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santhira DevOps — Quick Reference Guide</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@600;800&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07090f;
+            --surface: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --cyan: #00f0ff;
+            --purple: #9b59ff;
+            --magenta: #ff3d7f;
+            --green: #00e676;
+            --yellow: #ffd60a;
+            --text: #e8edf5;
+            --muted: #6b7a99;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 60px;
+            padding: 50px 20px;
+            background: radial-gradient(ellipse at center, rgba(155, 89, 255, 0.15) 0%, transparent 70%);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--cyan);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: clamp(32px, 5vw, 56px);
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, var(--cyan) 50%, var(--purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 18px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Download Bar */
+        .download-bar {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .dl-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .dl-btn.primary {
+            background: linear-gradient(135deg, var(--purple), var(--cyan));
+            color: #000;
+        }
+
+        .dl-btn.secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .dl-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.15);
+        }
+
+        /* Section Layout */
+        .toc {
+            max-width: 1200px;
+            margin: 0 auto 40px;
+            padding: 24px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .toc a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 13px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .toc a:hover {
+            color: var(--cyan);
+            border-color: rgba(0, 240, 255, 0.2);
+            background: rgba(0, 240, 255, 0.05);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        @media(max-width:900px) {
+
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            break-inside: avoid;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .card-tag {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        /* Code Blocks */
+        .cmd-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .cmd-item {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: var(--cyan);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            display: block;
+        }
+
+        code:hover {
+            border-color: rgba(0, 240, 255, 0.4);
+        }
+
+        .cmd-desc {
+            font-size: 12px;
+            color: var(--muted);
+            padding-top: 8px;
+        }
+
+        pre code {
+            white-space: pre;
+            overflow-x: auto;
+            display: block;
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 8px;
+        }
+
+        /* Color Accents */
+        .cyan-card {
+            border-left: 3px solid var(--cyan);
+        }
+
+        .purple-card {
+            border-left: 3px solid var(--purple);
+        }
+
+        .green-card {
+            border-left: 3px solid var(--green);
+        }
+
+        .yellow-card {
+            border-left: 3px solid var(--yellow);
+        }
+
+        .magenta-card {
+            border-left: 3px solid var(--magenta);
+        }
+
+        .ic-cyan {
+            background: rgba(0, 240, 255, 0.1);
+        }
+
+        .ic-purple {
+            background: rgba(155, 89, 255, 0.1);
+        }
+
+        .ic-green {
+            background: rgba(0, 230, 118, 0.1);
+        }
+
+        .ic-yellow {
+            background: rgba(255, 214, 10, 0.1);
+        }
+
+        .ic-magenta {
+            background: rgba(255, 61, 127, 0.1);
+        }
+
+        .tag-cyan {
+            background: rgba(0, 240, 255, 0.1);
+            color: var(--cyan);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+        }
+
+        .tag-purple {
+            background: rgba(155, 89, 255, 0.1);
+            color: var(--purple);
+            border: 1px solid rgba(155, 89, 255, 0.2);
+        }
+
+        .tag-green {
+            background: rgba(0, 230, 118, 0.1);
+            color: var(--green);
+        }
+
+        .tag-yellow {
+            background: rgba(255, 214, 10, 0.1);
+            color: var(--yellow);
+        }
+
+        .tag-magenta {
+            background: rgba(255, 61, 127, 0.1);
+            color: var(--magenta);
+        }
+
+        /* Section Dividers */
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            margin: 50px 0 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text);
+        }
+
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* Roadmap */
+        .roadmap {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            position: relative;
+        }
+
+        .roadmap::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--cyan), var(--purple));
+        }
+
+        .rm-item {
+            display: flex;
+            gap: 20px;
+            padding: 16px 16px 16px 0;
+        }
+
+        .rm-dot {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+            z-index: 1;
+        }
+
+        .rm-content h4 {
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .rm-content p {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* Pipeline */
+        .pipeline {
+            display: flex;
+            gap: 0;
+            flex-wrap: wrap;
+        }
+
+        .pipe-step {
+            flex: 1;
+            min-width: 80px;
+            text-align: center;
+            padding: 16px 8px;
+            position: relative;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .pipe-step::after {
+            content: '→';
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 16px;
+        }
+
+        .pipe-step:last-child::after {
+            display: none;
+        }
+
+        .pipe-num {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 8px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th {
+            text-align: left;
+            padding: 10px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Tooltip on copy */
+        .copied {
+            color: var(--green) !important;
+        }
+
+        /* Print button */
+        @media print {
+            body {
+                background: #fff;
+                color: #000;
+            }
+
+            .dl-btn,
+            .download-bar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── PAGE HEADER ─────────────────────────────── -->
+    <div class="page-header">
+        <div class="badge">📘 Santhira Platform</div>
+        <h1>DevOps Quick Reference</h1>
+        <p class="subtitle">Your complete cheat sheet for Docker, Kubernetes, Terraform, Git CI/CD, and the Santhira AI
+            API.</p>
+        <div class="download-bar">
+            <button class="dl-btn primary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+            <a class="dl-btn secondary" href="http://localhost:8000/docs" target="_blank">⚡ Open API Docs</a>
+            <a class="dl-btn secondary" href="http://localhost:8001" target="_blank">🚀 Santhira Dashboard</a>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <!-- ── TABLE OF CONTENTS ──────────────────── -->
+        <nav class="toc">
+            <a href="#git">🌿 Git Commands</a>
+            <a href="#docker">🐳 Docker</a>
+            <a href="#kubernetes">☸️ Kubernetes</a>
+            <a href="#terraform">🏗️ Terraform</a>
+            <a href="#santhira">🤖 Santhira API</a>
+            <a href="#pipeline">⚙️ CI/CD Pipeline</a>
+            <a href="#roadmap">🗺️ Learning Roadmap</a>
+            <a href="#errors">🔍 Error Catalog</a>
+        </nav>
+
+        <!-- ── GIT ────────────────────────────────── -->
+        <div class="section-title" id="git">🌿 Git — Version Control</div>
+        <div class="grid-2">
+            <div class="card cyan-card">
+                <div class="card-header">
+                    <div class="card-icon ic-cyan">🔁</div>
+                    <div class="card-title">Daily Workflow</div>
+                    <span class="card-tag tag-cyan">ESSENTIAL</span>
+                </div>
+                <ul class="cmd-list">
+                    <li class="cmd-item"><code onclick="copyCode(this)">git status</code><span class="cmd-desc">Check
+                            what's changed</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">git add .</code><span class="cmd-desc">Stage all
+                            changes</span></li>
+                    <li class="cmd-item"><code
+                            onclick="copyCode(this)">git commit -m "feat: add podcast endpoint"</code><span
+                            class="cmd-desc">Commit with message</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">git push origin main</code><span
+                            class="cmd-desc">Push to remote</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">git pull origin main</code><span
+                            class="cmd-desc">Pull latest changes</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">git log --oneline -10</code><span
+                            class="cmd-desc">View last 10 commits</span></li>
+                </ul>
+            </div>
+            <div class="card purple-card">
+                <div class="card-header">
+                    <div class="card-icon ic-purple">🌿</div>
+                    <div class="card-title">Branch Management</div>
+                    <span class="card-tag tag-purple">WORKFLOW</span>
+                </div>
+                <ul class="cmd-list">
+                    <li class="cmd-item"><code onclick="copyCode(this)">git checkout -b feature/ai-podcast</code><span
+                            class="cmd-desc">Create + switch to new branch</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">git branch -a</code><span class="cmd-desc">List
+                            all branches</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">git merge feature/ai-podcast</code><span
+                            class="cmd-desc">Merge feature into current</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">git branch -d feature/ai-podcast</code><span
+                            class="cmd-desc">Delete merged branch</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">git stash && git stash pop</code><span
+                            class="cmd-desc">Temporarily hide changes</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">git rebase main</code><span
+                            class="cmd-desc">Rebase onto main branch</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ── DOCKER ─────────────────────────────── -->
+        <div class="section-title" id="docker">🐳 Docker — Containerization</div>
+        <div class="grid-3">
+            <div class="card cyan-card">
+                <div class="card-header">
+                    <div class="card-icon ic-cyan">🏗️</div>
+                    <div class="card-title">Build & Run</div>
+                </div>
+                <ul class="cmd-list">
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker build -t santhira .</code><span
+                            class="cmd-desc">Build from Dockerfile</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker run -p 8001:8001 santhira</code><span
+                            class="cmd-desc">Run container</span></li>
+                    <li class="cmd-item"><code
+                            onclick="copyCode(this)">docker run -d --name santhira-api santhira</code><span
+                            class="cmd-desc">Run in background</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker ps</code><span class="cmd-desc">List
+                            running containers</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker logs -f santhira-api</code><span
+                            class="cmd-desc">Follow container logs</span></li>
+                </ul>
+            </div>
+            <div class="card green-card">
+                <div class="card-header">
+                    <div class="card-icon ic-green">🧹</div>
+                    <div class="card-title">Manage & Clean</div>
+                </div>
+                <ul class="cmd-list">
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker stop santhira-api</code><span
+                            class="cmd-desc">Stop container gracefully</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker rm santhira-api</code><span
+                            class="cmd-desc">Remove container</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker rmi santhira</code><span
+                            class="cmd-desc">Remove image</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker system prune -af</code><span
+                            class="cmd-desc">Clean all unused resources</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker exec -it santhira-api bash</code><span
+                            class="cmd-desc">Shell into container</span></li>
+                </ul>
+            </div>
+            <div class="card purple-card">
+                <div class="card-header">
+                    <div class="card-icon ic-purple">🐙</div>
+                    <div class="card-title">Docker Compose</div>
+                </div>
+                <ul class="cmd-list">
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker compose up -d</code><span
+                            class="cmd-desc">Start all services</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker compose down</code><span
+                            class="cmd-desc">Stop all services</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker compose logs -f api</code><span
+                            class="cmd-desc">Follow API service logs</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker compose build --no-cache</code><span
+                            class="cmd-desc">Rebuild images fresh</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">docker compose ps</code><span
+                            class="cmd-desc">Status of all services</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ── KUBERNETES ─────────────────────────── -->
+        <div class="section-title" id="kubernetes">☸️ Kubernetes — Orchestration</div>
+        <div class="grid-2">
+            <div class="card yellow-card">
+                <div class="card-header">
+                    <div class="card-icon ic-yellow">🔍</div>
+                    <div class="card-title">Inspect & Debug</div>
+                    <span class="card-tag tag-yellow">kubectl</span>
+                </div>
+                <ul class="cmd-list">
+                    <li class="cmd-item"><code onclick="copyCode(this)">kubectl get pods -A</code><span
+                            class="cmd-desc">All pods in all namespaces</span></li>
+                    <li class="cmd-item"><code
+                            onclick="copyCode(this)">kubectl describe pod &lt;pod-name&gt;</code><span
+                            class="cmd-desc">Full pod details + events</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">kubectl logs -f &lt;pod-name&gt;</code><span
+                            class="cmd-desc">Stream pod logs</span></li>
+                    <li class="cmd-item"><code
+                            onclick="copyCode(this)">kubectl get events --sort-by=.lastTimestamp</code><span
+                            class="cmd-desc">Recent cluster events</span></li>
+                    <li class="cmd-item"><code
+                            onclick="copyCode(this)">kubectl exec -it &lt;pod&gt; -- /bin/sh</code><span
+                            class="cmd-desc">Shell into pod</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">kubectl top pods</code><span
+                            class="cmd-desc">CPU & Memory usage</span></li>
+                </ul>
+            </div>
+            <div class="card magenta-card">
+                <div class="card-header">
+                    <div class="card-icon ic-magenta">🚀</div>
+                    <div class="card-title">Deploy & Scale</div>
+                    <span class="card-tag tag-magenta">DEPLOY</span>
+                </div>
+                <ul class="cmd-list">
+                    <li class="cmd-item"><code onclick="copyCode(this)">kubectl apply -f deployment.yaml</code><span
+                            class="cmd-desc">Apply manifest file</span></li>
+                    <li class="cmd-item"><code
+                            onclick="copyCode(this)">kubectl rollout status deploy/santhira</code><span
+                            class="cmd-desc">Check rollout progress</span></li>
+                    <li class="cmd-item"><code
+                            onclick="copyCode(this)">kubectl scale deploy/santhira --replicas=5</code><span
+                            class="cmd-desc">Scale deployment</span></li>
+                    <li class="cmd-item"><code onclick="copyCode(this)">kubectl rollout undo deploy/santhira</code><span
+                            class="cmd-desc">🔴 Rollback instantly</span></li>
+                    <li class="cmd-item"><code
+                            onclick="copyCode(this)">kubectl set image deploy/santhira api=santhira:v2</code><span
+                            class="cmd-desc">Update container image</span></li>
+                    <li class="cmd-item"><code
+                            onclick="copyCode(this)">kubectl delete pod &lt;pod&gt; --force</code><span
+                            class="cmd-desc">Force terminate stuck pod</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ── SANTHIRA API ────────────────────────── -->
+        <div class="section-title" id="santhira">🤖 Santhira Platform — API Reference</div>
+        <div class="card purple-card" style="margin-bottom:24px;">
+            <div class="card-header">
+                <div class="card-icon ic-purple">⚡</div>
+                <div class="card-title">REST Endpoints</div>
+                <span class="card-tag tag-purple">BASE: localhost:8001</span>
+            </div>
+            <table>
+                <tr>
+                    <th>Method</th>
+                    <th>Endpoint</th>
+                    <th>Description</th>
+                    <th>Auth</th>
+                </tr>
+                <tr>
+                    <td><span style="color:var(--green);font-weight:700;">GET</span></td>
+                    <td><code>/health</code></td>
+                    <td>Service health check</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td><span style="color:var(--yellow);font-weight:700;">POST</span></td>
+                    <td><code>/api/v1/troubleshoot</code></td>
+                    <td>Analyze DevOps error (8-step AI pipeline)</td>
+                    <td>API Key</td>
+                </tr>
+                <tr>
+                    <td><span style="color:var(--yellow);font-weight:700;">POST</span></td>
+                    <td><code>/api/v1/troubleshoot/stream</code></td>
+                    <td>Streaming analysis response (SSE)</td>
+                    <td>API Key</td>
+                </tr>
+                <tr>
+                    <td><span style="color:var(--green);font-weight:700;">GET</span></td>
+                    <td><code>/api/v1/troubleshoot/stats</code></td>
+                    <td>Platform usage statistics</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td><span style="color:var(--green);font-weight:700;">GET</span></td>
+                    <td><code>/api/v1/troubleshoot/errors/search</code></td>
+                    <td>Semantic search over 10k+ error catalog</td>
+                    <td>None</td>
+                </tr>
+                <tr>
+                    <td><span style="color:var(--yellow);font-weight:700;">POST</span></td>
+                    <td><code>/api/generate-podcast</code></td>
+                    <td>Generate NotebookLM-style audio briefing</td>
+                    <td>API Key</td>
+                </tr>
+                <tr>
+                    <td><span style="color:var(--yellow);font-weight:700;">POST</span></td>
+                    <td><code>/api/study-image</code></td>
+                    <td>Vision analysis of topology diagrams</td>
+                    <td>API Key</td>
+                </tr>
+                <tr>
+                    <td><span style="color:var(--yellow);font-weight:700;">POST</span></td>
+                    <td><code>/api/trigger-chaos</code></td>
+                    <td>Trigger n8n anomaly remediation workflow</td>
+                    <td>API Key</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- ── CI/CD PIPELINE ─────────────────────── -->
+        <div class="section-title" id="pipeline">⚙️ Santhira CI/CD Pipeline</div>
+        <div class="card green-card" style="margin-bottom: 40px;">
+            <div class="card-header">
+                <div class="card-icon ic-green">🔄</div>
+                <div class="card-title">GitHub Actions Workflow — Every git push triggers:</div>
+            </div>
+            <div class="pipeline">
+                <div class="pipe-step">
+                    <div class="pipe-num" style="background:rgba(0,240,255,0.15);color:var(--cyan)">1</div>
+                    Code Push
+                </div>
+                <div class="pipe-step">
+                    <div class="pipe-num" style="background:rgba(155,89,255,0.15);color:var(--purple)">2</div>
+                    Run Tests <br>pytest
+                </div>
+                <div class="pipe-step">
+                    <div class="pipe-num" style="background:rgba(0,230,118,0.15);color:var(--green)">3</div>
+                    Docker Build
+                </div>
+                <div class="pipe-step">
+                    <div class="pipe-num" style="background:rgba(255,214,10,0.15);color:var(--yellow)">4</div>
+                    Push to Registry
+                </div>
+                <div class="pipe-step">
+                    <div class="pipe-num" style="background:rgba(255,61,127,0.15);color:var(--magenta)">5</div>
+                    Deploy to K8s
+                </div>
+                <div class="pipe-step">
+                    <div class="pipe-num" style="background:rgba(0,230,118,0.15);color:var(--green)">6</div>
+                    Health Check ✅
+                </div>
+            </div>
+        </div>
+
+        <!-- ── LEARNING ROADMAP ───────────────────── -->
+        <div class="section-title" id="roadmap">🗺️ DevOps Learning Roadmap</div>
+        <div class="grid-2">
+            <div class="card">
+                <div class="roadmap">
+                    <div class="rm-item">
+                        <div class="rm-dot" style="background:rgba(0,230,118,0.15);color:var(--green);">1</div>
+                        <div class="rm-content">
+                            <h4>Linux & Bash</h4>
+                            <p>File system, processes, cron, networking basics</p>
+                        </div>
+                    </div>
+                    <div class="rm-item">
+                        <div class="rm-dot" style="background:rgba(0,240,255,0.15);color:var(--cyan);">2</div>
+                        <div class="rm-content">
+                            <h4>Git & GitHub</h4>
+                            <p>Branching, merging, PRs, GitFlow</p>
+                        </div>
+                    </div>
+                    <div class="rm-item">
+                        <div class="rm-dot" style="background:rgba(155,89,255,0.15);color:var(--purple);">3</div>
+                        <div class="rm-content">
+                            <h4>Docker</h4>
+                            <p>Build images, multi-stage, Compose</p>
+                        </div>
+                    </div>
+                    <div class="rm-item">
+                        <div class="rm-dot" style="background:rgba(255,214,10,0.15);color:var(--yellow);">4</div>
+                        <div class="rm-content">
+                            <h4>CI/CD Pipelines</h4>
+                            <p>GitHub Actions, Jenkins, GitLab CI</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="roadmap">
+                    <div class="rm-item">
+                        <div class="rm-dot" style="background:rgba(255,214,10,0.15);color:var(--yellow);">5</div>
+                        <div class="rm-content">
+                            <h4>Kubernetes</h4>
+                            <p>Deployments, services, Helm charts</p>
+                        </div>
+                    </div>
+                    <div class="rm-item">
+                        <div class="rm-dot" style="background:rgba(255,61,127,0.15);color:var(--magenta);">6</div>
+                        <div class="rm-content">
+                            <h4>Cloud (AWS/GCP)</h4>
+                            <p>EC2, S3, RDS, IAM, VPC, EKS</p>
+                        </div>
+                    </div>
+                    <div class="rm-item">
+                        <div class="rm-dot" style="background:rgba(0,230,118,0.15);color:var(--green);">7</div>
+                        <div class="rm-content">
+                            <h4>Monitoring</h4>
+                            <p>Prometheus, Grafana, ELK stack</p>
+                        </div>
+                    </div>
+                    <div class="rm-item">
+                        <div class="rm-dot" style="background:rgba(155,89,255,0.15);color:var(--purple);">8</div>
+                        <div class="rm-content">
+                            <h4>AI DevOps (You're here!)</h4>
+                            <p>LangGraph agents, n8n automation, AI troubleshooting</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── ERROR CATALOG ─────────────────────── -->
+        <div class="section-title" id="errors">🔍 Common Error Quick Reference</div>
+        <div class="card magenta-card">
+            <table>
+                <tr>
+                    <th>Error</th>
+                    <th>Tool</th>
+                    <th>Severity</th>
+                    <th>Quick Fix</th>
+                </tr>
+                <tr>
+                    <td><code style="color:var(--magenta)">CrashLoopBackOff</code></td>
+                    <td>Kubernetes</td>
+                    <td><span style="color:var(--magenta);font-weight:700;">CRITICAL</span></td>
+                    <td>kubectl logs &lt;pod&gt; to see crash reason</td>
+                </tr>
+                <tr>
+                    <td><code style="color:var(--magenta)">OOMKilled</code></td>
+                    <td>Kubernetes</td>
+                    <td><span style="color:var(--magenta);font-weight:700;">CRITICAL</span></td>
+                    <td>Increase memory limits in yaml spec</td>
+                </tr>
+                <tr>
+                    <td><code style="color:var(--yellow)">ImagePullBackOff</code></td>
+                    <td>Kubernetes</td>
+                    <td><span style="color:var(--yellow);font-weight:700;">HIGH</span></td>
+                    <td>Check image name & registry credentials</td>
+                </tr>
+                <tr>
+                    <td><code style="color:var(--yellow)">502 Bad Gateway</code></td>
+                    <td>Nginx</td>
+                    <td><span style="color:var(--yellow);font-weight:700;">HIGH</span></td>
+                    <td>Upstream service is down or port mismatch</td>
+                </tr>
+                <tr>
+                    <td><code style="color:var(--cyan)">permission denied</code></td>
+                    <td>Linux / Docker</td>
+                    <td><span style="color:var(--cyan);font-weight:700;">MEDIUM</span></td>
+                    <td>chmod / chown or run with correct user</td>
+                </tr>
+                <tr>
+                    <td><code style="color:var(--cyan)">AccessDenied</code></td>
+                    <td>AWS</td>
+                    <td><span style="color:var(--yellow);font-weight:700;">HIGH</span></td>
+                    <td>Check IAM policy has correct permissions</td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="text-align:center;padding:40px 0 20px;color:var(--muted);font-size:13px;">
+            Built with ❤️ by Santhira Platform · Rajkumar Madhu (Founder & CTO) · Powered by AI Agents
+        </div>
+    </div>
+
+    <script>
+        function copyCode( el ) {
+            navigator.clipboard.writeText( el.innerText ).then( () => {
+                el.classList.add( 'copied' );
+                const orig = el.style.color;
+                el.style.color = '#00e676';
+                setTimeout( () => {
+                    el.classList.remove( 'copied' );
+                    el.style.color = orig;
+                }, 1500 );
+            } );
+        }
+    </script>
+</body>
+
+</html>

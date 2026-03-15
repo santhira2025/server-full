@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: archon-config
+  namespace: arugs
+  labels:
+    app.kubernetes.io/part-of: archon
+data:
+  PORT: "3000"
+  NODE_ENV: "production"
+  FRONTEND_URL: "https://code.review.santhira.com"
+  ARCHON_API_URL: "https://code.review.api.santhira.com"

@@ -1,0 +1,85 @@
+<script>
+// ========== ANALYTICS ==========
+PAGES.analytics=function(){
+  var kpis=[{label:'Total Users',val:'15,247',change:'+23%',color:'var(--accent)'},{label:'Active Sessions',val:'3,842',change:'+12%',color:'var(--blue)'},{label:'Errors Resolved',val:'94.2%',change:'+5.1%',color:'var(--green)'},{label:'Avg Response',val:'1.2s',change:'-18%',color:'var(--purple)'}];
+  var h=hdr('Analytics','\u{1F4C9} Analytics Dashboard','Real-time platform metrics \u00b7 User engagement \u00b7 Module performance');
+  h+='<div class="content"><div class="grid grid-4" style="margin-bottom:24px">';
+  kpis.forEach(function(k){
+    h+='<div class="card-premium" style="padding:20px"><div class="sub">'+k.label+'</div><div class="metric" style="color:'+k.color+'">'+k.val+'</div><div style="font-size:11px;color:var(--green)">\u25B2 '+k.change+' this month</div></div>';
+  });
+  h+='</div><div class="grid grid-2" style="margin-bottom:24px"><div class="chart-wrap"><h3 style="margin-bottom:12px">Daily Active Users</h3><div style="height:280px"><canvas id="chart-dau"></canvas></div></div><div class="chart-wrap"><h3 style="margin-bottom:12px">Module Usage</h3><div style="height:280px"><canvas id="chart-usage"></canvas></div></div></div>';
+  h+='<div class="grid grid-2"><div class="chart-wrap"><h3 style="margin-bottom:12px">Error Resolution</h3><div style="height:280px"><canvas id="chart-errors"></canvas></div></div><div class="chart-wrap"><h3 style="margin-bottom:12px">Engagement Score</h3><div style="height:280px"><canvas id="chart-engage"></canvas></div></div></div>';
+  h+='</div>';return h;
+};
+
+afterRender.analytics=function(){
+  requestAnimationFrame(function(){setTimeout(function(){
+    var c1=document.getElementById('chart-dau');
+    if(c1&&c1.getContext){destroyChart('dau');chartInstances.dau=new Chart(c1.getContext('2d'),{type:'line',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun','Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'DAU',data:[2100,2400,2800,3100,3500,1800,1600,2300,2700,3200,3600,3900,2000,1700],borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,0.1)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#00d4aa'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}},grid:{color:'rgba(30,42,63,0.5)'}},y:{ticks:{font:{size:10}},grid:{color:'rgba(30,42,63,0.5)'}}}}});}
+    var c2=document.getElementById('chart-usage');
+    if(c2&&c2.getContext){destroyChart('usage');chartInstances.usage=new Chart(c2.getContext('2d'),{type:'bar',data:{labels:['Learning','Deploy','Troubleshoot','Interview','Analyzer','Expander','Config','Arch'],datasets:[{label:'Sessions/Week',data:[4200,2800,3500,2100,1200,800,1500,600],backgroundColor:['#00d4aa','#4da6ff','#f87171','#a78bfa','#fb923c','#fbbf24','#34d399','#f472b6']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}},grid:{color:'rgba(30,42,63,0.5)'}},y:{ticks:{font:{size:10}},grid:{color:'rgba(30,42,63,0.5)'}}}}});}
+    var c3=document.getElementById('chart-errors');
+    if(c3&&c3.getContext){destroyChart('errs');chartInstances.errs=new Chart(c3.getContext('2d'),{type:'pie',data:{labels:['Auto-resolved','AI-assisted','Manual fix','Escalated'],datasets:[{data:[45,30,18,7],backgroundColor:['#00d4aa','#4da6ff','#fb923c','#f87171'],borderColor:'#0a0e17',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}});}
+    var c4=document.getElementById('chart-engage');
+    if(c4&&c4.getContext){destroyChart('engage');chartInstances.engage=new Chart(c4.getContext('2d'),{type:'radar',data:{labels:['Labs','Q&A','Configs','Errors','Paths','Docs'],datasets:[{label:'Engagement',data:[85,78,72,90,68,55],borderColor:'#00d4aa',backgroundColor:'rgba(0,212,170,0.15)',pointBackgroundColor:'#00d4aa'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:11}}}},scales:{r:{ticks:{backdropColor:'transparent',font:{size:9}},grid:{color:'rgba(30,42,63,0.5)'},pointLabels:{font:{size:10}}}}}});}
+  },200)});
+};
+
+// ========== TEAM & SETTINGS ==========
+PAGES.team=function(){
+  var members=[{name:'Rajkumar Madhu',role:'Founder & CTO',avatar:'RM',color:'var(--accent)'},{name:'Priya Sharma',role:'Lead Engineer',avatar:'PS',color:'var(--blue)'},{name:'Alex Chen',role:'AI/ML Engineer',avatar:'AC',color:'var(--purple)'},{name:'Sarah Williams',role:'DevOps Engineer',avatar:'SW',color:'var(--orange)'},{name:'James Park',role:'Frontend Lead',avatar:'JP',color:'var(--green)'},{name:'Maria Garcia',role:'QA Engineer',avatar:'MG',color:'var(--pink)'}];
+  var h=hdr('Team & Settings','\u{1F465} Team & Settings','Team management \u00b7 Plan details \u00b7 Platform settings');
+  h+='<div class="content"><h3 style="font-size:15px;margin-bottom:16px">Team Members</h3><div class="grid grid-3" style="margin-bottom:24px">';
+  members.forEach(function(m){
+    h+='<div class="card" style="text-align:center"><div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,'+m.color+',var(--blue));display:flex;align-items:center;justify-content:center;font-weight:700;color:#0a0e17;margin:0 auto 10px;font-size:16px">'+m.avatar+'</div><h3>'+m.name+'</h3><div class="desc">'+m.role+'</div></div>';
+  });
+  h+='</div>';
+  // Plan
+  h+='<h3 style="font-size:15px;margin-bottom:16px">Current Plan</h3><div class="card-premium" style="padding:24px;margin-bottom:24px"><div class="grid grid-4">';
+  [{label:'Plan',val:'Enterprise',color:'var(--purple)'},{label:'Seats',val:'6 / 10',color:'var(--accent)'},{label:'Storage',val:'42 GB / 100 GB',color:'var(--blue)'},{label:'API Calls',val:'125K / 500K',color:'var(--orange)'}].forEach(function(s){
+    h+='<div><div style="font-size:11px;color:var(--text3)">'+s.label+'</div><div style="font-family:JetBrains Mono,monospace;font-size:18px;font-weight:700;color:'+s.color+'">'+s.val+'</div></div>';
+  });
+  h+='</div></div>';
+  // Settings
+  h+='<h3 style="font-size:15px;margin-bottom:16px">Platform Settings</h3><div class="card">';
+  ['Email Notifications','Slack Integration','Two-Factor Authentication','Auto-deploy on Push','Dark Mode Default','Weekly Reports','API Rate Limiting','Audit Logging','SSO Enforcement','Data Retention (90 days)'].forEach(function(s,i){
+    var on=i<6;
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">'+s+'</span><span style="font-size:11px;font-weight:600;color:'+(on?'var(--accent)':'var(--text3)')+'">'+(on?'Enabled':'Disabled')+'</span></div>';
+  });
+  h+='</div></div>';return h;
+};
+
+// ========== SECURITY ==========
+PAGES.security=function(){
+  var features=[{icon:'\u{1F512}',t:'End-to-End Encryption',d:'TLS 1.3, AES-256 at rest, encrypted secrets',c:'--accent'},{icon:'\u{1F6E1}\uFE0F',t:'WAF & DDoS Protection',d:'Cloudflare WAF, rate limiting, bot detection',c:'--blue'},{icon:'\u{1F511}',t:'Zero Trust Architecture',d:'mTLS, service mesh, no implicit trust',c:'--purple'},{icon:'\u{1F50D}',t:'Vulnerability Scanning',d:'Trivy, Falco, SAST/DAST in CI pipeline',c:'--orange'},{icon:'\u{1F464}',t:'RBAC & MFA',d:'Keycloak, role-based access, hardware keys',c:'--green'},{icon:'\u{1F4CB}',t:'Audit Logging',d:'Every action logged, immutable, searchable',c:'--yellow'},{icon:'\u{1F50F}',t:'Secrets Management',d:'Vault, External Secrets, auto-rotation',c:'--red'},{icon:'\u{1F3AF}',t:'Compliance Ready',d:'SOC 2, ISO 27001, GDPR, HIPAA frameworks',c:'--pink'}];
+  var compliance=[{name:'SOC 2 Type II',status:'In Progress',color:'var(--yellow)'},{name:'ISO 27001',status:'Planned',color:'var(--text3)'},{name:'GDPR',status:'Compliant',color:'var(--accent)'},{name:'HIPAA',status:'Planned',color:'var(--text3)'},{name:'CIS Benchmarks',status:'Compliant',color:'var(--accent)'},{name:'OWASP Top 10',status:'Compliant',color:'var(--accent)'}];
+  var audit=[{time:'14:32:05',user:'RM',action:'Deployed prometheus-stack v48.3','result':'Success'},
+    {time:'14:15:22',user:'PS',action:'Updated RBAC policies','result':'Success'},
+    {time:'13:48:11',user:'AC',action:'Pushed new LLM model weights','result':'Success'},
+    {time:'12:30:45',user:'SW',action:'Rotated TLS certificates','result':'Success'},
+    {time:'11:22:33',user:'JP',action:'Updated frontend CDN config','result':'Success'},
+    {time:'10:15:00',user:'MG',action:'Ran security scan on staging','result':'3 findings'},
+    {time:'09:45:12',user:'RM',action:'Updated firewall rules','result':'Success'},
+    {time:'08:30:00',user:'System',action:'Automated backup completed','result':'Success'}];
+  var h=hdr('Security','\u{1F6E1}\uFE0F Security & Compliance','Zero trust \u00b7 Encrypted \u00b7 Audited \u00b7 Compliance-ready');
+  h+='<div class="content"><h3 style="font-size:15px;margin-bottom:16px">Security Features</h3><div class="grid grid-4" style="margin-bottom:24px">';
+  features.forEach(function(f){h+='<div class="card"><div style="font-size:22px;margin-bottom:8px">'+f.icon+'</div><h3 style="color:var('+f.c+')">'+f.t+'</h3><div class="desc">'+f.d+'</div></div>'});
+  h+='</div><h3 style="font-size:15px;margin-bottom:16px">Compliance Status</h3><div class="grid grid-3" style="margin-bottom:24px">';
+  compliance.forEach(function(c){h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center"><h3>'+c.name+'</h3><span style="font-size:11px;font-weight:600;color:'+c.color+'">'+c.status+'</span></div>'});
+  h+='</div><h3 style="font-size:15px;margin-bottom:16px">Audit Log (Today)</h3>'+tbl(['Time','User','Action','Result'],audit.map(function(a){return '<tr><td><span class="cell-code">'+a.time+'</span></td><td><strong>'+a.user+'</strong></td><td>'+a.action+'</td><td><span class="cell-tag '+(a.result==='Success'?'tag-green':'tag-yellow')+'">'+a.result+'</span></td></tr>'}).join(''));
+  h+='</div>';return h;
+};
+
+// ========== INTEGRATIONS ==========
+PAGES.integrations=function(){
+  var items=[{name:'Slack',desc:'Notifications, alerts, deployment updates',icon:'\u{1F4AC}',status:'Connected',color:'var(--accent)'},{name:'GitHub',desc:'CI/CD triggers, PR automation, code sync',icon:'\u{1F4BB}',status:'Connected',color:'var(--accent)'},{name:'Jira',desc:'Issue tracking, sprint integration',icon:'\u{1F4CB}',status:'Connected',color:'var(--accent)'},{name:'PagerDuty',desc:'Incident management, on-call routing',icon:'\u{1F6A8}',status:'Connected',color:'var(--accent)'},{name:'Datadog',desc:'Metrics forwarding, dashboard sync',icon:'\u{1F4CA}',status:'Available',color:'var(--text3)'},{name:'AWS',desc:'EKS, S3, IAM, CloudWatch integration',icon:'\u2601\uFE0F',status:'Connected',color:'var(--accent)'},{name:'Azure',desc:'AKS, Key Vault, Monitor integration',icon:'\u{1F7E6}',status:'Available',color:'var(--text3)'},{name:'GCP',desc:'GKE, BigQuery, Cloud Build integration',icon:'\u{1F7E2}',status:'Available',color:'var(--text3)'},{name:'Terraform Cloud',desc:'Remote state, run triggers, policies',icon:'\u{1F3D7}\uFE0F',status:'Connected',color:'var(--accent)'},{name:'GitLab',desc:'CI/CD, container registry, merge requests',icon:'\u{1F98A}',status:'Available',color:'var(--text3)'},{name:'Microsoft Teams',desc:'Notifications, bot commands, cards',icon:'\u{1F4E2}',status:'Available',color:'var(--text3)'},{name:'Webhooks',desc:'Custom HTTP callbacks for any event',icon:'\u{1F517}',status:'Enabled',color:'var(--accent)'}];
+  var h=hdr('Integrations','\u{1F517} Integrations','12 integrations \u00b7 Connect your tools \u00b7 Automate workflows');
+  h+='<div class="content"><div class="grid grid-3">';
+  items.forEach(function(i){
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:24px">'+i.icon+'</span><span style="font-size:10px;font-weight:600;color:'+i.color+'">'+i.status+'</span></div><h3>'+i.name+'</h3><div class="desc">'+i.desc+'</div></div>';
+  });
+  h+='</div>';
+  h+='<div class="card" style="margin-top:24px"><h3 style="margin-bottom:8px">\u{1F517} Webhook Configuration</h3><div class="code-block">POST https://api.santhira.dev/webhooks/v1\nContent-Type: application/json\nX-Webhook-Secret: whsec_...\n\n{\n  "event": "deployment.completed",\n  "data": {\n    "template": "prometheus-stack",\n    "environment": "production",\n    "status": "success",\n    "deployed_by": "rajkumar@santhira.dev"\n  }\n}</div></div>';
+  h+='</div>';return h;
+};
+</script>

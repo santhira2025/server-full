@@ -1,0 +1,1562 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Santhira Enterprise Platform — Command Center</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #040508;
+            --bg-panel: rgba(12, 16, 28, 0.85);
+            --bg-card: rgba(255, 255, 255, 0.028);
+            --border: rgba(255, 255, 255, 0.07);
+            --border-hi: rgba(255, 255, 255, 0.14);
+            --cyan: #00e5ff;
+            --blue: #2979ff;
+            --purple: #7c4dff;
+            --green: #00c853;
+            --amber: #ffab00;
+            --red: #ff1744;
+            --text: #dce6f5;
+            --muted: #55647f;
+            --sidebar-w: 260px;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-deep);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* ── SCROLLBAR ── */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-hi);
+            border-radius: 3px;
+        }
+
+        /* ─────────────────────────────────────────
+           SIDEBAR
+        ───────────────────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-w);
+            min-width: var(--sidebar-w);
+            height: 100vh;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(20px);
+            z-index: 10;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: radial-gradient(ellipse at top left, rgba(124, 77, 255, 0.12), transparent 70%);
+            pointer-events: none;
+        }
+
+        .brand {
+            padding: 28px 24px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--purple), var(--cyan));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            box-shadow: 0 4px 20px rgba(124, 77, 255, 0.4);
+        }
+
+        .brand-text {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        .brand-sub {
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-top: 1px;
+        }
+
+        .workspace-badge {
+            margin: 16px 16px 0;
+            background: rgba(41, 121, 255, 0.1);
+            border: 1px solid rgba(41, 121, 255, 0.2);
+            border-radius: 10px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .ws-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--green);
+            flex-shrink: 0;
+            box-shadow: 0 0 8px var(--green);
+            animation: blink 2s infinite;
+        }
+
+        .ws-label {
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .ws-name {
+            font-weight: 600;
+            color: var(--text);
+            font-size: 13px;
+        }
+
+        .nav-section {
+            padding: 20px 12px 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-group-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 12px 12px 6px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            transition: all 0.2s;
+            margin-bottom: 2px;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-card);
+            color: var(--text);
+        }
+
+        .nav-item.active {
+            background: rgba(124, 77, 255, 0.12);
+            color: var(--text);
+            border: 1px solid rgba(124, 77, 255, 0.2);
+        }
+
+        .nav-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .nav-item.active .nav-icon {
+            background: rgba(124, 77, 255, 0.25);
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 20px;
+        }
+
+        .badge-red {
+            background: rgba(255, 23, 68, 0.2);
+            color: var(--red);
+        }
+
+        .badge-green {
+            background: rgba(0, 200, 83, 0.2);
+            color: var(--green);
+        }
+
+        .badge-amber {
+            background: rgba(255, 171, 0, 0.2);
+            color: var(--amber);
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--blue), var(--purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .user-more {
+            margin-left: auto;
+            color: var(--muted);
+        }
+
+        /* ─────────────────────────────────────────
+           MAIN CONTENT
+        ───────────────────────────────────────── */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* TOP BAR */
+        .topbar {
+            height: 64px;
+            min-height: 64px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 28px;
+            gap: 16px;
+            backdrop-filter: blur(12px);
+        }
+
+        .topbar-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            margin-right: auto;
+        }
+
+        .topbar-title span {
+            color: var(--purple);
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(0, 200, 83, 0.1);
+            border: 1px solid rgba(0, 200, 83, 0.25);
+            color: var(--green);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 20px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: blink 1.2s infinite;
+        }
+
+        .topbar-action {
+            width: 36px;
+            height: 36px;
+            border-radius: 9px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .topbar-action:hover {
+            border-color: var(--purple);
+            background: rgba(124, 77, 255, 0.1);
+        }
+
+        .notif-dot {
+            position: relative;
+        }
+
+        .notif-dot::after {
+            content: '3';
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--red);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* CONTENT AREA */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 24px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+        }
+
+        /* ── KPI STRIP ── */
+        .kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+            cursor: pointer;
+        }
+
+        .kpi-card:hover {
+            border-color: var(--border-hi);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .kpi-blue::before {
+            background: linear-gradient(90deg, var(--blue), var(--cyan));
+        }
+
+        .kpi-purple::before {
+            background: linear-gradient(90deg, var(--purple), #bf6bff);
+        }
+
+        .kpi-green::before {
+            background: var(--green);
+        }
+
+        .kpi-amber::before {
+            background: var(--amber);
+        }
+
+        .kpi-red::before {
+            background: var(--red);
+        }
+
+        .kpi-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 30px;
+            font-weight: 800;
+            margin: 8px 0 4px;
+            letter-spacing: -1px;
+        }
+
+        .kpi-delta {
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .kpi-delta.up {
+            color: var(--green);
+        }
+
+        .kpi-delta.down {
+            color: var(--red);
+        }
+
+        .kpi-icon {
+            position: absolute;
+            right: 16px;
+            top: 16px;
+            font-size: 28px;
+            opacity: 0.15;
+        }
+
+        .kpi-sparkline {
+            margin-top: 12px;
+            height: 30px;
+        }
+
+        /* ── MAIN GRID ── */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 340px;
+            gap: 16px;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            margin-right: auto;
+        }
+
+        .panel-tag {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 3px 9px;
+            border-radius: 20px;
+        }
+
+        .tag-cyan {
+            background: rgba(0, 229, 255, 0.1);
+            color: var(--cyan);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+        }
+
+        .tag-purple {
+            background: rgba(124, 77, 255, 0.1);
+            color: var(--purple);
+            border: 1px solid rgba(124, 77, 255, 0.15);
+        }
+
+        .tag-green {
+            background: rgba(0, 200, 83, 0.1);
+            color: var(--green);
+            border: 1px solid rgba(0, 200, 83, 0.2);
+        }
+
+        .tag-amber {
+            background: rgba(255, 171, 0, 0.1);
+            color: var(--amber);
+            border: 1px solid rgba(255, 171, 0, 0.2);
+        }
+
+        .tag-red {
+            background: rgba(255, 23, 68, 0.1);
+            color: var(--red);
+            border: 1px solid rgba(255, 23, 68, 0.2);
+        }
+
+        .panel-body {
+            padding: 16px 20px 20px;
+        }
+
+        /* ── BOTTOM GRID ── */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* ── AGENT TABLE ── */
+        .agent-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .agent-row:last-child {
+            border-bottom: none;
+        }
+
+        .agent-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .agent-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .agent-role {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .agent-status {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+
+        .s-green {
+            background: var(--green);
+            box-shadow: 0 0 6px var(--green);
+        }
+
+        .s-amber {
+            background: var(--amber);
+            box-shadow: 0 0 6px var(--amber);
+        }
+
+        .s-red {
+            background: var(--red);
+            box-shadow: 0 0 6px var(--red);
+            animation: blink 0.8s infinite;
+        }
+
+        .agent-tasks {
+            margin-left: 12px;
+            text-align: right;
+        }
+
+        .agent-tasks .num {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .agent-tasks .lbl {
+            font-size: 10px;
+            color: var(--muted);
+        }
+
+        /* ── ALERTS ── */
+        .alert-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            animation: slideIn 0.4s ease;
+        }
+
+        .alert-item:last-child {
+            border: none;
+        }
+
+        .alert-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .alert-critical {
+            background: rgba(255, 23, 68, 0.12);
+        }
+
+        .alert-warn {
+            background: rgba(255, 171, 0, 0.12);
+        }
+
+        .alert-info {
+            background: rgba(0, 229, 255, 0.1);
+        }
+
+        .alert-title {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .alert-body {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+            line-height: 1.4;
+        }
+
+        .alert-time {
+            font-size: 10px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* ── PROGRESS BARS ── */
+        .resource-row {
+            margin-bottom: 14px;
+        }
+
+        .resource-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .resource-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 7px;
+        }
+
+        .resource-label {
+            font-weight: 600;
+        }
+
+        .resource-val {
+            color: var(--muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .progress-track {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1s ease;
+        }
+
+        .pf-cyan {
+            background: linear-gradient(90deg, var(--cyan), var(--blue));
+        }
+
+        .pf-purple {
+            background: linear-gradient(90deg, var(--purple), #bf5bff);
+        }
+
+        .pf-green {
+            background: var(--green);
+        }
+
+        .pf-amber {
+            background: var(--amber);
+        }
+
+        .pf-red {
+            background: linear-gradient(90deg, var(--red), #ff6b6b);
+        }
+
+        /* ── TOKEN USAGE ── */
+        .token-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .token-row:last-child {
+            border: none;
+        }
+
+        .token-model {
+            font-size: 12px;
+            font-weight: 600;
+            min-width: 130px;
+        }
+
+        .token-bar {
+            flex: 1;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .token-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .token-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* ── ANIMATIONS ── */
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(16px);
+                opacity: 0
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        @keyframes countUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .kpi-value {
+            animation: countUp 0.6s ease;
+        }
+
+        /* ── CHART CANVAS ── */
+        canvas {
+            display: block;
+        }
+
+        /* ── PIPELINE VISUAL ── */
+        .pipe-flow {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            padding: 14px 0;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+
+        .pipe-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 76px;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .pipe-circle {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .pipe-active {
+            box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.3);
+        }
+
+        .pipe-connector {
+            flex: 1;
+            height: 2px;
+            background: linear-gradient(90deg, var(--cyan), var(--purple));
+            min-width: 16px;
+            margin-bottom: 20px;
+        }
+
+        /* ── WORLD MAP PLACEHOLDER ── */
+        .geo-map {
+            position: relative;
+            height: 160px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        /* ── SCROLLABLE CONTENT FIX ── */
+        .content-scrollable {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══════════════ SIDEBAR ═══════════════ -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-logo">⚡</div>
+            <div>
+                <div class="brand-text">Santhira</div>
+                <div class="brand-sub">Enterprise Platform</div>
+            </div>
+        </div>
+
+        <div class="workspace-badge">
+            <div class="ws-dot"></div>
+            <div>
+                <div class="ws-label">WORKSPACE</div>
+                <div class="ws-name">DevOps Command Center</div>
+            </div>
+        </div>
+
+        <nav class="nav-section">
+            <div class="nav-group-label">Core</div>
+            <div class="nav-item active" onclick="setActive(this)">
+                <div class="nav-icon">📊</div> Dashboard
+            </div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">🔍</div> Troubleshooter AI
+                <span class="nav-badge badge-red">3</span>
+            </div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">🌐</div> Traffic Monitor
+            </div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">🤖</div> Agent Studio
+                <span class="nav-badge badge-green">Live</span>
+            </div>
+
+            <div class="nav-group-label">AI Modules</div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">🎙️</div> Podcast Generator
+            </div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">🗺️</div> Architecture Gen
+            </div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">📚</div> Learning Engine
+            </div>
+
+            <div class="nav-group-label">Operations</div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">🔄</div> CI/CD Pipelines
+                <span class="nav-badge badge-amber">2</span>
+            </div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">📦</div> Config Vault
+            </div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">📈</div> Log Analyzer
+            </div>
+            <div class="nav-item" onclick="setActive(this)">
+                <div class="nav-icon">⚙️</div> Settings
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="user-card">
+                <div class="user-avatar">R</div>
+                <div>
+                    <div class="user-name">Rajkumar M.</div>
+                    <div class="user-role">Founder & CTO</div>
+                </div>
+                <div class="user-more">⋯</div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ═══════════════ MAIN ═══════════════ -->
+    <div class="main">
+
+        <!-- TOP BAR -->
+        <header class="topbar">
+            <div class="topbar-title">Command <span>Center</span></div>
+            <div class="live-badge">
+                <div class="live-dot"></div> Live · 04:28 IST
+            </div>
+            <div class="topbar-action notif-dot" title="Alerts">🔔</div>
+            <div class="topbar-action" title="Search">🔍</div>
+            <div class="topbar-action" title="Full Screen" onclick="toggleFS()">⛶</div>
+        </header>
+
+        <!-- CONTENT -->
+        <div class="content" id="mainContent">
+
+            <!-- ── KPI STRIP ── -->
+            <div class="kpi-strip">
+                <div class="kpi-card kpi-blue">
+                    <div class="kpi-icon">📡</div>
+                    <div class="kpi-label">Ingestion Rate</div>
+                    <div class="kpi-value" id="kpi-rate">14,382</div>
+                    <div class="kpi-delta up">↑ 12.4% vs 1h ago</div>
+                    <canvas class="kpi-sparkline" id="spark0" width="200" height="30"></canvas>
+                </div>
+                <div class="kpi-card kpi-purple">
+                    <div class="kpi-icon">🤖</div>
+                    <div class="kpi-label">Active Agents</div>
+                    <div class="kpi-value" id="kpi-agents">7</div>
+                    <div class="kpi-delta up">↑ 2 spawned today</div>
+                    <canvas class="kpi-sparkline" id="spark1" width="200" height="30"></canvas>
+                </div>
+                <div class="kpi-card kpi-green">
+                    <div class="kpi-icon">✅</div>
+                    <div class="kpi-label">Issues Resolved</div>
+                    <div class="kpi-value" id="kpi-resolved">284</div>
+                    <div class="kpi-delta up">↑ 38 last hour</div>
+                    <canvas class="kpi-sparkline" id="spark2" width="200" height="30"></canvas>
+                </div>
+                <div class="kpi-card kpi-amber">
+                    <div class="kpi-icon">⚡</div>
+                    <div class="kpi-label">Avg Inference</div>
+                    <div class="kpi-value" id="kpi-latency">28ms</div>
+                    <div class="kpi-delta up">↓ 4ms faster</div>
+                    <canvas class="kpi-sparkline" id="spark3" width="200" height="30"></canvas>
+                </div>
+                <div class="kpi-card kpi-red">
+                    <div class="kpi-icon">🚨</div>
+                    <div class="kpi-label">Critical Alerts</div>
+                    <div class="kpi-value" id="kpi-alerts" style="color:var(--red)">3</div>
+                    <div class="kpi-delta down">↑ 3 unresolved</div>
+                    <canvas class="kpi-sparkline" id="spark4" width="200" height="30"></canvas>
+                </div>
+            </div>
+
+            <!-- ── MAIN GRID ── -->
+            <div class="main-grid">
+
+                <!-- Traffic Chart -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div style="font-size:18px">📈</div>
+                        <div class="panel-title">Real-Time Traffic Flow</div>
+                        <span class="panel-tag tag-cyan">LIVE</span>
+                    </div>
+                    <div class="panel-body">
+                        <canvas id="trafficChart" width="100%" height="180" style="width:100%;height:180px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- System Health -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div style="font-size:18px">🖥️</div>
+                        <div class="panel-title">Infrastructure Health</div>
+                        <span class="panel-tag tag-green">HEALTHY</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="resource-row">
+                            <div class="resource-header">
+                                <span class="resource-label">CPU Cluster Avg</span>
+                                <span class="resource-val" id="cpu-val">62%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill pf-cyan" id="cpu-bar" style="width:62%"></div>
+                            </div>
+                        </div>
+                        <div class="resource-row">
+                            <div class="resource-header">
+                                <span class="resource-label">Memory (pgvector DB)</span>
+                                <span class="resource-val" id="mem-val">74%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill pf-purple" id="mem-bar" style="width:74%"></div>
+                            </div>
+                        </div>
+                        <div class="resource-row">
+                            <div class="resource-header">
+                                <span class="resource-label">API Gateway Load</span>
+                                <span class="resource-val" id="api-val">45%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill pf-green" id="api-bar" style="width:45%"></div>
+                            </div>
+                        </div>
+                        <div class="resource-row">
+                            <div class="resource-header">
+                                <span class="resource-label">Storage (Supabase)</span>
+                                <span class="resource-val" id="sto-val">38%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill pf-amber" id="sto-bar" style="width:38%"></div>
+                            </div>
+                        </div>
+                        <div class="resource-row">
+                            <div class="resource-header">
+                                <span class="resource-label">Network Bandwidth</span>
+                                <span class="resource-val" id="net-val">88%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill pf-red" id="net-bar" style="width:88%"></div>
+                            </div>
+                        </div>
+                        <div class="resource-row" style="margin-top:14px">
+                            <div class="resource-header">
+                                <span class="resource-label">n8n Workflow Success Rate</span>
+                                <span class="resource-val" style="color:var(--green)">99.8%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill pf-green" style="width:99.8%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Alerts -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div style="font-size:18px">🚨</div>
+                        <div class="panel-title">Live Alerts</div>
+                        <span class="panel-tag tag-red">3 CRITICAL</span>
+                    </div>
+                    <div class="content-scrollable" id="alertFeed">
+                        <!-- Injected by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── BOTTOM GRID ── -->
+            <div class="bottom-grid">
+
+                <!-- AI Agent Status -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div style="font-size:18px">🤖</div>
+                        <div class="panel-title">Agent Fleet</div>
+                        <span class="panel-tag tag-purple">7 RUNNING</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="agent-row">
+                            <div class="agent-avatar" style="background:rgba(0,229,255,0.1)">🔍</div>
+                            <div>
+                                <div class="agent-name">Supervisor Agent</div>
+                                <div class="agent-role">LangGraph Orchestrator</div>
+                            </div>
+                            <div class="agent-status">
+                                <div class="status-dot s-green"></div>Active
+                            </div>
+                            <div class="agent-tasks">
+                                <div class="num" style="color:var(--cyan)">142</div>
+                                <div class="lbl">tasks</div>
+                            </div>
+                        </div>
+                        <div class="agent-row">
+                            <div class="agent-avatar" style="background:rgba(255,23,68,0.1)">🛡️</div>
+                            <div>
+                                <div class="agent-name">Security Agent</div>
+                                <div class="agent-role">Threat Detection</div>
+                            </div>
+                            <div class="agent-status">
+                                <div class="status-dot s-red"></div>ALERT
+                            </div>
+                            <div class="agent-tasks">
+                                <div class="num" style="color:var(--red)">3</div>
+                                <div class="lbl">threats</div>
+                            </div>
+                        </div>
+                        <div class="agent-row">
+                            <div class="agent-avatar" style="background:rgba(124,77,255,0.1)">🧠</div>
+                            <div>
+                                <div class="agent-name">Synthesis Agent</div>
+                                <div class="agent-role">Claude 3.7 Sonnet</div>
+                            </div>
+                            <div class="agent-status">
+                                <div class="status-dot s-green"></div>Active
+                            </div>
+                            <div class="agent-tasks">
+                                <div class="num" style="color:var(--purple)">58</div>
+                                <div class="lbl">outputs</div>
+                            </div>
+                        </div>
+                        <div class="agent-row">
+                            <div class="agent-avatar" style="background:rgba(0,200,83,0.1)">📡</div>
+                            <div>
+                                <div class="agent-name">Retrieval Agent</div>
+                                <div class="agent-role">Supabase pgvector</div>
+                            </div>
+                            <div class="agent-status">
+                                <div class="status-dot s-green"></div>Active
+                            </div>
+                            <div class="agent-tasks">
+                                <div class="num" style="color:var(--green)">1.2M</div>
+                                <div class="lbl">vectors</div>
+                            </div>
+                        </div>
+                        <div class="agent-row">
+                            <div class="agent-avatar" style="background:rgba(255,171,0,0.1)">🎙️</div>
+                            <div>
+                                <div class="agent-name">TTS Agent</div>
+                                <div class="agent-role">Gemini Audio API</div>
+                            </div>
+                            <div class="agent-status">
+                                <div class="status-dot s-amber"></div>Busy
+                            </div>
+                            <div class="agent-tasks">
+                                <div class="num" style="color:var(--amber)">2</div>
+                                <div class="lbl">episodes</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LLM Token Usage -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div style="font-size:18px">💬</div>
+                        <div class="panel-title">LLM Token Usage</div>
+                        <span class="panel-tag tag-amber">24h Window</span>
+                    </div>
+                    <div class="panel-body">
+                        <canvas id="donutChart" width="100%" height="140"
+                            style="width:100%;height:140px;margin-bottom:12px;"></canvas>
+                        <div class="token-row">
+                            <div class="token-model">🟣 Claude 3.7 Sonnet</div>
+                            <div class="token-bar">
+                                <div class="token-fill" style="width:78%;background:var(--purple)"></div>
+                            </div>
+                            <div class="token-count">2.4M</div>
+                        </div>
+                        <div class="token-row">
+                            <div class="token-model">🔵 GPT-4o</div>
+                            <div class="token-bar">
+                                <div class="token-fill" style="width:45%;background:var(--blue)"></div>
+                            </div>
+                            <div class="token-count">1.1M</div>
+                        </div>
+                        <div class="token-row">
+                            <div class="token-model">🔵 Gemini 1.5 Pro</div>
+                            <div class="token-bar">
+                                <div class="token-fill" style="width:30%;background:var(--cyan)"></div>
+                            </div>
+                            <div class="token-count">0.7M</div>
+                        </div>
+                        <div class="token-row">
+                            <div class="token-model">⚡ Cerebras LLAMA</div>
+                            <div class="token-bar">
+                                <div class="token-fill" style="width:15%;background:var(--green)"></div>
+                            </div>
+                            <div class="token-count">0.2M</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CI/CD Pipeline -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <div style="font-size:18px">🔄</div>
+                        <div class="panel-title">Active Deployment</div>
+                        <span class="panel-tag tag-green">RUNNING</span>
+                    </div>
+                    <div class="panel-body">
+                        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">santhira/main → Production ·
+                            #47</div>
+                        <div class="pipe-flow">
+                            <div class="pipe-node">
+                                <div class="pipe-circle pipe-active" style="background:rgba(0,200,83,0.12)">✅</div>
+                                Code
+                            </div>
+                            <div class="pipe-connector"></div>
+                            <div class="pipe-node">
+                                <div class="pipe-circle pipe-active" style="background:rgba(0,200,83,0.12)">✅</div>
+                                Test
+                            </div>
+                            <div class="pipe-connector"></div>
+                            <div class="pipe-node">
+                                <div class="pipe-circle pipe-active" style="background:rgba(0,200,83,0.12)">✅</div>
+                                Build
+                            </div>
+                            <div class="pipe-connector" style="background:var(--amber)"></div>
+                            <div class="pipe-node">
+                                <div class="pipe-circle"
+                                    style="background:rgba(255,171,0,0.12);animation:blink 1.5s infinite">⏳</div>
+                                Deploy
+                            </div>
+                            <div class="pipe-connector" style="background:rgba(255,255,255,0.08)"></div>
+                            <div class="pipe-node" style="color:var(--muted)">
+                                <div class="pipe-circle" style="background:rgba(255,255,255,0.04)">🏁</div>
+                                Done
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px;">
+                            <div class="resource-row">
+                                <div class="resource-header"><span class="resource-label"
+                                        style="color:var(--amber)">Deploying to Kubernetes...</span><span
+                                        class="resource-val" id="deploy-pct">64%</span></div>
+                                <div class="progress-track">
+                                    <div class="progress-fill pf-amber" id="deploy-bar" style="width:64%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="font-size:11px;color:var(--muted);margin-top:10px;">
+                            ⏱️ Duration: 4m 22s &nbsp;|&nbsp; 👤 Triggered by: Rajkumar M. &nbsp;|&nbsp; 🐳 Image:
+                            santhira:v1.4.2
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── HELPERS ──────────────────────────────────
+        const $ = id => document.getElementById( id );
+        function rand( min, max ) { return Math.random() * ( max - min ) + min; }
+
+        // ── SPARKLINES ───────────────────────────────
+        function drawSparkline( canvasId, color, data ) {
+            const c = $( canvasId );
+            if ( !c ) return;
+            const ctx = c.getContext( '2d' );
+            const w = c.parentElement.clientWidth - 40 || 180;
+            c.width = w; c.height = 30;
+
+            const max = Math.max( ...data ), min = Math.min( ...data );
+            const step = w / ( data.length - 1 );
+
+            ctx.clearRect( 0, 0, w, 30 );
+
+            // Gradient fill
+            const grad = ctx.createLinearGradient( 0, 0, 0, 30 );
+            grad.addColorStop( 0, color + '44' );
+            grad.addColorStop( 1, color + '00' );
+            ctx.beginPath();
+            ctx.moveTo( 0, 30 - ( ( data[0] - min ) / ( max - min ) ) * 24 );
+            data.forEach( ( v, i ) => ctx.lineTo( i * step, 30 - ( ( v - min ) / ( max - min ) ) * 24 ) );
+            ctx.lineTo( w, 30 );
+            ctx.lineTo( 0, 30 );
+            ctx.closePath();
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // Line
+            ctx.beginPath();
+            ctx.moveTo( 0, 30 - ( ( data[0] - min ) / ( max - min ) ) * 24 );
+            data.forEach( ( v, i ) => ctx.lineTo( i * step, 30 - ( ( v - min ) / ( max - min ) ) * 24 ) );
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        const sparks = [
+            { id: 'spark0', color: '#00e5ff', data: [120, 135, 128, 142, 138, 150, 144, 154, 141, 143] },
+            { id: 'spark1', color: '#7c4dff', data: [4, 4, 5, 5, 6, 6, 7, 7, 7, 7] },
+            { id: 'spark2', color: '#00c853', data: [210, 220, 225, 240, 248, 260, 262, 272, 280, 284] },
+            { id: 'spark3', color: '#ffab00', data: [38, 35, 32, 30, 31, 29, 28, 28, 27, 28] },
+            { id: 'spark4', color: '#ff1744', data: [0, 1, 0, 0, 2, 1, 0, 2, 3, 3] },
+        ];
+        sparks.forEach( s => drawSparkline( s.id, s.color, s.data ) );
+
+        // ── TRAFFIC LINE CHART ────────────────────────
+        const trafficData = Array.from( { length: 60 }, () => rand( 8000, 18000 ) );
+        let trafficOffset = 0;
+
+        function drawTrafficChart() {
+            const c = $( 'trafficChart' );
+            if ( !c ) return;
+            const w = c.parentElement.clientWidth - 40 || 550;
+            c.width = w; c.height = 180;
+            const ctx = c.getContext( '2d' );
+            ctx.clearRect( 0, 0, w, 180 );
+
+            const data = trafficData;
+            const max = 20000, min = 5000;
+            const step = w / ( data.length - 1 );
+
+            // Grid lines
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.lineWidth = 1;
+            for ( let i = 0; i <= 4; i++ ) {
+                const y = 10 + ( i * ( 160 / 4 ) );
+                ctx.beginPath(); ctx.moveTo( 0, y ); ctx.lineTo( w, y ); ctx.stroke();
+            }
+
+            // Gradient fill
+            const grad = ctx.createLinearGradient( 0, 0, 0, 180 );
+            grad.addColorStop( 0, 'rgba(0,229,255,0.2)' );
+            grad.addColorStop( 1, 'rgba(0,229,255,0.01)' );
+            ctx.beginPath();
+            ctx.moveTo( 0, 170 - ( ( data[0] - min ) / ( max - min ) ) * 160 );
+            data.forEach( ( v, i ) => {
+                const x = i * step;
+                const y = 10 + ( 1 - ( v - min ) / ( max - min ) ) * 160;
+                ctx.lineTo( x, y );
+            } );
+            ctx.lineTo( w, 170 ); ctx.lineTo( 0, 170 );
+            ctx.closePath();
+            ctx.fillStyle = grad; ctx.fill();
+
+            // Cyan line
+            ctx.beginPath();
+            data.forEach( ( v, i ) => {
+                const x = i * step;
+                const y = 10 + ( 1 - ( v - min ) / ( max - min ) ) * 160;
+                i === 0 ? ctx.moveTo( x, y ) : ctx.lineTo( x, y );
+            } );
+            ctx.strokeStyle = '#00e5ff'; ctx.lineWidth = 2; ctx.stroke();
+
+            // Last point glow dot
+            const lastX = ( data.length - 1 ) * step;
+            const lastY = 10 + ( 1 - ( data[data.length - 1] - min ) / ( max - min ) ) * 160;
+            ctx.beginPath(); ctx.arc( lastX, lastY, 4, 0, Math.PI * 2 );
+            ctx.fillStyle = '#00e5ff'; ctx.shadowBlur = 12; ctx.shadowColor = '#00e5ff'; ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        function updateTraffic() {
+            trafficData.push( rand( 8000, 18000 ) );
+            trafficData.shift();
+            drawTrafficChart();
+            const rate = ( rand( 13800, 14800 ) ).toFixed( 0 );
+            if ( $( 'kpi-rate' ) ) $( 'kpi-rate' ).innerText = parseInt( rate ).toLocaleString();
+        }
+
+        // ── DONUT CHART ───────────────────────────────
+        function drawDonut() {
+            const c = $( 'donutChart' );
+            if ( !c ) return;
+            const w = c.parentElement.clientWidth - 40 || 260;
+            c.width = w; c.height = 140;
+            const ctx = c.getContext( '2d' );
+            const cx = w / 2, cy = 70, r = 55, inner = 38;
+
+            const slices = [
+                { val: 2.4, color: '#7c4dff', label: 'Claude' },
+                { val: 1.1, color: '#2979ff', label: 'GPT-4o' },
+                { val: 0.7, color: '#00e5ff', label: 'Gemini' },
+                { val: 0.2, color: '#00c853', label: 'Cerebras' },
+            ];
+            const total = slices.reduce( ( a, b ) => a + b.val, 0 );
+            let start = -Math.PI / 2;
+
+            slices.forEach( s => {
+                const sweep = ( s.val / total ) * Math.PI * 2;
+                ctx.beginPath();
+                ctx.arc( cx, cy, r, start, start + sweep );
+                ctx.arc( cx, cy, inner, start + sweep, start, true );
+                ctx.closePath();
+                ctx.fillStyle = s.color;
+                ctx.shadowBlur = 8; ctx.shadowColor = s.color;
+                ctx.fill(); ctx.shadowBlur = 0;
+                start += sweep;
+            } );
+
+            ctx.fillStyle = '#0c101c';
+            ctx.beginPath(); ctx.arc( cx, cy, inner - 2, 0, Math.PI * 2 ); ctx.fill();
+
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 18px Outfit, sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText( '4.4M', cx, cy - 8 );
+            ctx.fillStyle = '#55647f';
+            ctx.font = '11px Inter, sans-serif';
+            ctx.fillText( 'Total Tokens', cx, cy + 10 );
+        }
+
+        // ── LIVE ALERTS ──────────────────────────────
+        const alertDefs = [
+            { icon: '🔴', cls: 'alert-critical', title: 'CRITICAL: US-East Traffic Anomaly', body: '14.8k rps spike detected. Potential DDoS. n8n remediation engaged.', time: '00:28:44' },
+            { icon: '🟡', cls: 'alert-warn', title: 'HIGH: Memory Pressure on DB Node', body: 'Supabase pgvector node at 88% memory. Consider scaling replica.', time: '00:26:11' },
+            { icon: '🔴', cls: 'alert-critical', title: 'CRITICAL: Auth Service Unresponsive', body: '3/5 health checks failing on Auth Service pod. LangGraph rerouting.', time: '00:24:02' },
+            { icon: '🔵', cls: 'alert-info', title: 'INFO: Podcast generation complete', body: 'Task pod_1740610722 finished. Audio stored in Supabase Storage.', time: '00:21:55' },
+            { icon: '🟡', cls: 'alert-warn', title: 'WARN: CI/CD Deploy slow', body: 'Deploy #47 exceeded 4m SLA. Investigating K8s node scheduling.', time: '00:18:30' },
+            { icon: '🔵', cls: 'alert-info', title: 'INFO: 284 errors auto-resolved', body: 'Troubleshooter AI resolved 284 issues in the last 60 minutes.', time: '00:15:00' },
+        ];
+
+        function renderAlerts() {
+            const feed = $( 'alertFeed' );
+            if ( !feed ) return;
+            feed.innerHTML = alertDefs.map( a => `
+        <div class="alert-item">
+            <div class="alert-icon ${ a.cls }">${ a.icon }</div>
+            <div>
+                <div class="alert-title">${ a.title }</div>
+                <div class="alert-body">${ a.body }</div>
+                <div class="alert-time">${ a.time } UTC</div>
+            </div>
+        </div>
+    `).join( '' );
+        }
+
+        // ── ANIMATED RESOURCES ────────────────────────
+        let resourceTick = 0;
+        function updateResources() {
+            const items = [
+                { val: $( 'cpu-val' ), bar: $( 'cpu-bar' ), base: 62, range: 15 },
+                { val: $( 'mem-val' ), bar: $( 'mem-bar' ), base: 74, range: 8 },
+                { val: $( 'api-val' ), bar: $( 'api-bar' ), base: 45, range: 20 },
+                { val: $( 'sto-val' ), bar: $( 'sto-bar' ), base: 38, range: 5 },
+                { val: $( 'net-val' ), bar: $( 'net-bar' ), base: 88, range: 10 },
+            ];
+            items.forEach( ( { val, bar, base, range } ) => {
+                const v = Math.min( 99, Math.max( 10, base + Math.sin( resourceTick * 0.05 ) * range + rand( -3, 3 ) ) ).toFixed( 0 );
+                if ( val ) val.innerText = v + '%';
+                if ( bar ) bar.style.width = v + '%';
+            } );
+            resourceTick++;
+        }
+
+        // ── DEPLOY PROGRESS ───────────────────────────
+        let deployPct = 64;
+        function updateDeploy() {
+            if ( deployPct < 100 ) {
+                deployPct = Math.min( 100, deployPct + rand( 0.3, 1.2 ) );
+                const p = $( 'deploy-pct' ), b = $( 'deploy-bar' );
+                if ( p ) p.innerText = deployPct.toFixed( 0 ) + '%';
+                if ( b ) b.style.width = deployPct + '%';
+            }
+        }
+
+        // ── CLOCK ─────────────────────────────────────
+        function updateClock() {
+            const d = document.querySelector( '.live-badge' );
+            const t = new Date().toLocaleTimeString( 'en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' } );
+            if ( d ) d.innerHTML = `<div class="live-dot"></div> Live · ${ t } IST`;
+        }
+
+        // ── NAV ───────────────────────────────────────
+        function setActive( el ) {
+            document.querySelectorAll( '.nav-item' ).forEach( n => n.classList.remove( 'active' ) );
+            el.classList.add( 'active' );
+        }
+
+        // ── FULLSCREEN ───────────────────────────────
+        function toggleFS() {
+            if ( !document.fullscreenElement ) document.documentElement.requestFullscreen().catch( () => { } );
+            else document.exitFullscreen();
+        }
+
+        // ── INIT ─────────────────────────────────────
+        drawTrafficChart();
+        drawDonut();
+        renderAlerts();
+        updateResources();
+
+        setInterval( updateTraffic, 1000 );
+        setInterval( updateResources, 2000 );
+        setInterval( updateDeploy, 1500 );
+        setInterval( updateClock, 1000 );
+        updateClock();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,471 @@
+---
+# ============================================================
+# RedisNexus - Complete Kubernetes Deployment
+# Enterprise Redis Operations Intelligence Platform
+# Author: Santhira (Rajkumar Madhu)
+# ============================================================
+
+# --- Namespace ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: redis-nexus
+  labels:
+    app.kubernetes.io/name: redis-nexus
+    app.kubernetes.io/part-of: santhira-platform
+
+---
+# --- ConfigMap ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-nexus-config
+  namespace: redis-nexus
+data:
+  REDIS_URL: "redis://redis-master.redis-nexus.svc.cluster.local:6379"
+  MCP_TRANSPORT: "streamable_http"
+  MCP_PORT: "8000"
+  LOG_LEVEL: "info"
+
+---
+# --- Secret (replace with real values or use sealed-secrets) ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-nexus-secrets
+  namespace: redis-nexus
+type: Opaque
+stringData:
+  REDIS_PASSWORD: "CHANGE_ME_IN_PRODUCTION"
+
+---
+# --- Redis Master StatefulSet ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-master
+  namespace: redis-nexus
+  labels:
+    app: redis
+    role: master
+spec:
+  serviceName: redis-master
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: master
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: master
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9121"
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        command:
+        - redis-server
+        args:
+        - "--appendonly"
+        - "yes"
+        - "--maxmemory"
+        - "1gb"
+        - "--maxmemory-policy"
+        - "allkeys-lru"
+        - "--save"
+        - "900 1"
+        - "--save"
+        - "300 10"
+        - "--save"
+        - "60 10000"
+        - "--requirepass"
+        - "$(REDIS_PASSWORD)"
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-nexus-secrets
+              key: REDIS_PASSWORD
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1.5Gi"
+            cpu: "1000m"
+        readinessProbe:
+          exec:
+            command: ["redis-cli", "ping"]
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          exec:
+            command: ["redis-cli", "ping"]
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+
+      # Redis Exporter sidecar for Prometheus metrics
+      - name: redis-exporter
+        image: oliver006/redis_exporter:v1.58.0
+        ports:
+        - containerPort: 9121
+          name: metrics
+        env:
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: redis-nexus-secrets
+              key: REDIS_PASSWORD
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+# --- Redis Master Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-master
+  namespace: redis-nexus
+  labels:
+    app: redis
+    role: master
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+    name: redis
+  - port: 9121
+    targetPort: 9121
+    name: metrics
+  selector:
+    app: redis
+    role: master
+  clusterIP: None
+
+---
+# --- RedisNexus MCP Server Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-nexus-mcp
+  namespace: redis-nexus
+  labels:
+    app: redis-nexus-mcp
+    component: mcp-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redis-nexus-mcp
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: redis-nexus-mcp
+        component: mcp-server
+    spec:
+      containers:
+      - name: mcp-server
+        image: santhira/redis-nexus-mcp:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        envFrom:
+        - configMapRef:
+            name: redis-nexus-config
+        - secretRef:
+            name: redis-nexus-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 30
+
+---
+# --- MCP Server Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-nexus-mcp
+  namespace: redis-nexus
+  labels:
+    app: redis-nexus-mcp
+spec:
+  ports:
+  - port: 8000
+    targetPort: 8000
+    name: http
+  selector:
+    app: redis-nexus-mcp
+  type: ClusterIP
+
+---
+# --- Ingress ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redis-nexus-ingress
+  namespace: redis-nexus
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - redis-nexus.santhira.com
+    secretName: redis-nexus-tls
+  rules:
+  - host: redis-nexus.santhira.com
+    http:
+      paths:
+      - path: /mcp
+        pathType: Prefix
+        backend:
+          service:
+            name: redis-nexus-mcp
+            port:
+              number: 8000
+
+---
+# --- Redis Backup CronJob ---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: redis-backup
+  namespace: redis-nexus
+spec:
+  schedule: "0 */6 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: redis:7.2-alpine
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting Redis backup..."
+              redis-cli -h redis-master -a $REDIS_PASSWORD BGSAVE
+              sleep 15
+              TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+              cp /data/dump.rdb /backup/redis-nexus-${TIMESTAMP}.rdb
+              echo "Backup completed: redis-nexus-${TIMESTAMP}.rdb"
+              # Cleanup backups older than 7 days
+              find /backup -name "redis-nexus-*.rdb" -mtime +7 -delete
+            env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-nexus-secrets
+                  key: REDIS_PASSWORD
+            volumeMounts:
+            - name: redis-data
+              mountPath: /data
+              readOnly: true
+            - name: backup-volume
+              mountPath: /backup
+          restartPolicy: OnFailure
+          volumes:
+          - name: redis-data
+            persistentVolumeClaim:
+              claimName: redis-data-redis-master-0
+          - name: backup-volume
+            persistentVolumeClaim:
+              claimName: redis-backup-pvc
+
+---
+# --- Backup PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-backup-pvc
+  namespace: redis-nexus
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# --- HPA for MCP Server ---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: redis-nexus-mcp-hpa
+  namespace: redis-nexus
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: redis-nexus-mcp
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# --- NetworkPolicy ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-nexus-network-policy
+  namespace: redis-nexus
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: redis-nexus
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ingress-nginx
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: redis-nexus
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+
+---
+# --- ServiceMonitor for Prometheus ---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: redis-nexus-monitor
+  namespace: redis-nexus
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: redis
+      role: master
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+
+---
+# --- PrometheusRule for Alerts ---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: redis-nexus-alerts
+  namespace: redis-nexus
+  labels:
+    release: prometheus
+spec:
+  groups:
+  - name: redis-nexus.rules
+    rules:
+    - alert: RedisDown
+      expr: redis_up == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Redis instance is down"
+        description: "Redis instance {{ $labels.instance }} is unreachable for > 1 minute."
+
+    - alert: RedisHighMemory
+      expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 80
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Redis memory usage > 80%"
+        description: "Redis memory at {{ $value }}%"
+
+    - alert: RedisHighLatency
+      expr: redis_commands_duration_seconds_total / redis_commands_processed_total > 0.01
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Redis average latency > 10ms"
+
+    - alert: RedisLowHitRate
+      expr: redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total) * 100 < 80
+      for: 10m
+      labels:
+        severity: warning
+      annotations:
+        summary: "Redis cache hit rate below 80%"
+
+    - alert: RedisReplicationBroken
+      expr: redis_connected_slaves < 1
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Redis has no connected replicas"

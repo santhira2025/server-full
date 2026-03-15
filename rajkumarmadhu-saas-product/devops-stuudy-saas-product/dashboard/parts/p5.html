@@ -1,0 +1,72 @@
+<script>
+// ========== LEARNING ENGINE ==========
+// LEARN_DETAIL is defined in p5a.html (LP-001-004), p5b.html (LP-005-010), p5c.html (LP-011-015)
+
+function showPathDetail(id){
+  var d=LEARN_DETAIL[id];if(!d)return;
+  var el=document.getElementById('path-detail');
+  if(el&&el.getAttribute('data-id')===id){el.remove();return;}
+  if(el)el.remove();
+  var h='<div id="path-detail" data-id="'+id+'" class="animate" style="margin-top:20px">';
+  h+='<div class="card-premium" style="padding:24px">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h3 style="font-size:16px;color:var(--accent)">'+d.title+'</h3><span style="font-size:12px;color:var(--text3);cursor:pointer" onclick="document.getElementById(\'path-detail\').remove()">\u2716 Close</span></div>';
+  // Topics list
+  h+='<div style="margin-bottom:20px"><div class="code-title">Topics Covered ('+d.topics.length+')</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+  d.topics.forEach(function(t,i){h+='<span class="pill" style="background:var(--accent)12;color:var(--accent);border:1px solid var(--accent)25">'+(i+1)+'. '+t+'</span>'});
+  h+='</div></div>';
+  // Concept Explanation
+  h+='<div style="margin-bottom:20px;padding:16px;background:var(--bg3);border-radius:var(--radius2);border-left:3px solid var(--accent)">'+d.concept+'</div>';
+  // Configuration
+  h+='<div style="margin-bottom:20px"><div class="code-title">\u2699\uFE0F Sample Configuration</div><div class="code-block">'+d.config+'</div></div>';
+  // Errors
+  h+='<div style="margin-bottom:20px"><div class="code-title">\u{1F41B} Common Errors & Fixes</div>';
+  d.errors.forEach(function(e){
+    h+='<div style="padding:10px;margin:6px 0;background:var(--bg);border-radius:var(--radius2);border-left:3px solid var(--red)"><div style="font-size:12px;font-weight:600;color:var(--red)">'+e.err+'</div><div style="font-size:12px;color:var(--green);margin-top:4px">\u2192 '+e.fix+'</div></div>';
+  });
+  h+='</div>';
+  // Interview Q&A
+  h+='<div><div class="code-title">\u{1F3AF} Interview Questions</div>';
+  d.interview.forEach(function(qa){
+    h+='<div style="padding:12px;margin:6px 0;background:var(--bg);border-radius:var(--radius2);border-left:3px solid var(--purple)"><div style="font-size:13px;font-weight:600;color:var(--purple)">Q: '+qa.q+'</div><div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.6">'+qa.a+'</div></div>';
+  });
+  h+='</div></div></div>';
+  // Insert after table
+  var panel=document.getElementById('learn-panel-0');
+  if(panel)panel.insertAdjacentHTML('beforeend',h);
+}
+
+PAGES.learning=function(){
+  var paths=[['LP-001','Linux Fundamentals \u2192 Advanced','Boot, FS, networking, security, scripting, systemd, kernel','Beginner\u2192Expert','40'],['LP-002','Networking & Cloud Networking','OSI, TCP/IP, switching, routing, VPC, LB, DNS, VPN','Beginner\u2192Expert','35'],['LP-003','Docker & Containers Deep Dive','Internals, Dockerfile, networking, storage, security, CI/CD','Beginner\u2192Expert','30'],['LP-004','Kubernetes Mastery','Architecture, objects, networking, storage, Helm, GitOps','Beginner\u2192Expert','60'],['LP-005','Terraform & IaC','HCL, state, modules, workspaces, testing, CI/CD','Beginner\u2192Expert','30'],['LP-006','CI/CD & DevOps Practices','Pipelines, strategies, GitOps, testing, DORA, platform eng','Beginner\u2192Expert','35'],['LP-007','AWS Cloud Architect','Compute, networking, storage, DB, security, architecture','Beginner\u2192Expert','50'],['LP-008','Azure Cloud Engineer','VMs, AKS, networking, identity, storage, DevOps','Beginner\u2192Expert','45'],['LP-009','GCP Cloud Engineer','Compute, GKE, networking, BigQuery, Vertex AI','Beginner\u2192Expert','40'],['LP-010','Monitoring & Observability','Prometheus, Grafana, ELK, Loki, OTel, SLO/SLI, AIOps','Beginner\u2192Expert','35'],['LP-011','Security & DevSecOps','SAST/DAST/SCA, container security, IaC scan, compliance','Beginner\u2192Expert','30'],['LP-012','Databases for DevOps','PostgreSQL, MySQL, MongoDB, Redis, ES, replication, DR','Beginner\u2192Expert','30'],['LP-013','Nginx & Web Servers','Config, reverse proxy, LB, SSL, caching, Ingress','Beginner\u2192Expert','20'],['LP-014','AIOps & MLOps','Anomaly detection, RCA, ML pipelines, model serving, LLMOps','Intermediate\u2192Expert','35'],['LP-015','Interview Preparation','Q&A, system design, scenarios, mock interviews','All Levels','\u221E']];
+  var comps=[{icon:'\u{1F4D6}',t:'Concept Explanation',d:'Theory with analogies, diagrams, visual explanations',c:'--accent'},{icon:'\u2699\uFE0F',t:'Configuration Details',d:'Production-ready configs with inline comments',c:'--blue'},{icon:'\u{1F9EA}',t:'Hands-On Lab',d:'Sandboxed environment, guided tasks, validation',c:'--green'},{icon:'\u{1F41B}',t:'Errors & Fixes',d:'Top 10\u201320 errors with RCA, fix steps, prevention',c:'--red'},{icon:'\u{1F3AF}',t:'Interview Questions',d:'10\u201330 Q&A: technical, scenario, design, troubleshoot',c:'--purple'},{icon:'\u{1F3ED}',t:'Real-Time Scenarios',d:'3\u20135 production scenarios with walkthroughs',c:'--orange'},{icon:'\u{1F5FA}\uFE0F',t:'Architecture Diagrams',d:'Visual architecture, data flow, component interaction',c:'--yellow'},{icon:'\u26A1',t:'Quick Reference',d:'Cheat sheet: commands, configs, troubleshooting shortcuts',c:'--pink'},{icon:'\u{1F4DD}',t:'Assessment Quiz',d:'10\u201320 MCQs + hands-on challenges for validation',c:'--accent'},{icon:'\u{1F517}',t:'Related Topics',d:'Prerequisites and follow-up topics for continuous learning',c:'--blue'}];
+  var h=hdr('Learning Engine','\u{1F4DA} Learning Engine','15 learning paths \u00b7 517 topics \u00b7 Adaptive AI \u00b7 Real-time labs \u00b7 Certification prep');
+  h+='<div class="content"><div class="tabs" id="learn-tabs">'+['Learning Paths','Topic Structure','Lab System'].map(function(t,i){return '<div class="tab'+(i===0?' active':'')+'" onclick="switchTab(\'learn\','+i+')">'+t+'</div>'}).join('')+'</div>';
+  // Panel 0: Paths - NOW CLICKABLE
+  h+='<div id="learn-panel-0"><p style="font-size:12px;color:var(--text3);margin-bottom:12px">\u{1F449} Click any learning path to see detailed concept explanations, configs, errors & interview Q&A</p><div class="table-wrap"><table><thead><tr><th>ID</th><th>Learning Path</th><th>Topics</th><th>Level</th><th>Hours</th></tr></thead><tbody>';
+  paths.forEach(function(r){
+    h+='<tr style="cursor:pointer" onclick="showPathDetail(\''+r[0]+'\')" onmouseover="this.style.background=\'rgba(0,212,170,0.06)\'" onmouseout="this.style.background=\'\'"><td><span class="cell-code">'+r[0]+'</span></td><td><strong style="color:var(--accent)">'+r[1]+' \u25B6</strong></td><td style="font-size:11px;color:var(--text2)">'+r[2]+'</td><td><span class="cell-tag tag-green">'+r[3]+'</span></td><td style="font-family:JetBrains Mono,monospace;color:var(--accent)">'+r[4]+'h</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  // Panel 1: Components
+  h+='<div id="learn-panel-1" style="display:none"><h3 style="font-size:15px;margin-bottom:16px">Every Topic Contains These 10 Components</h3><div class="grid grid-2">';
+  comps.forEach(function(f){h+='<div class="card"><div style="font-size:22px;margin-bottom:8px">'+f.icon+'</div><h3 style="color:var('+f.c+')">'+f.t+'</h3><div class="desc">'+f.d+'</div></div>'});
+  h+='</div></div>';
+  // Panel 2: Lab
+  h+='<div id="learn-panel-2" style="display:none"><h3 style="font-size:15px;margin-bottom:16px">Lab Environment Architecture</h3><div class="card" style="padding:20px"><div class="code-title">Lab Provisioning Flow</div><div class="code-block">User clicks "Start Lab"\n  \u2192 API creates lab_session record (status: provisioning)\n  \u2192 Lab Controller provisions k3s cluster (isolated namespace)\n  \u2192 Installs required tools (kubectl, helm, terraform, etc.)\n  \u2192 Seeds lab with scenario data (pods, services, broken configs)\n  \u2192 Exposes web terminal via xterm.js + WebSocket\n  \u2192 User completes tasks in browser terminal\n  \u2192 Validation engine checks task completion\n  \u2192 Auto-cleanup after TTL (2 hours) or manual stop\n  \u2192 Lab results saved to user_progress</div></div>';
+  h+='<div class="grid grid-3" style="margin-top:16px">';
+  [{t:'Isolation',d:'Each user gets dedicated k3s namespace with resource limits',c:'--accent'},{t:'Pre-seeded',d:'Labs come with broken configs, failing pods, misconfigured services',c:'--red'},{t:'Validation',d:'Automated task checking: verify pods running, service reachable, config correct',c:'--green'}].forEach(function(f){h+='<div class="card"><h3 style="color:var('+f.c+')">'+f.t+'</h3><div class="desc">'+f.d+'</div></div>'});
+  h+='</div></div></div>';
+  return h;
+};
+
+// ========== DEPLOYMENT ENGINE ==========
+PAGES.deploy=function(){
+  var cats=[['Monitoring','Prometheus \u00b7 Grafana \u00b7 Alertmanager \u00b7 Loki \u00b7 Tempo \u00b7 Mimir \u00b7 VictoriaMetrics \u00b7 Thanos \u00b7 OTel Collector \u00b7 kube-state-metrics','tag-green','Helm+TF'],['Logging','ELK Stack \u00b7 Fluentd \u00b7 Fluent Bit \u00b7 Graylog \u00b7 Loki+Promtail','tag-blue','Helm+Compose'],['CI/CD','Jenkins \u00b7 GitLab Runner \u00b7 ArgoCD \u00b7 FluxCD \u00b7 Tekton \u00b7 Drone CI \u00b7 Woodpecker','tag-purple','Helm+TF'],['Databases','PostgreSQL HA (Patroni) \u00b7 MySQL (Percona) \u00b7 MongoDB \u00b7 Redis Cluster \u00b7 ES \u00b7 ClickHouse','tag-orange','Helm'],['Message Queues','Kafka (Strimzi) \u00b7 RabbitMQ \u00b7 NATS \u00b7 Redis Streams \u00b7 Apache Pulsar','tag-yellow','Helm'],['Security','Vault \u00b7 cert-manager \u00b7 Falco \u00b7 Trivy \u00b7 OPA Gatekeeper \u00b7 Kyverno \u00b7 External Secrets','tag-red','Helm'],['Service Mesh','Istio \u00b7 Linkerd \u00b7 Consul Connect \u00b7 Kuma','tag-purple','Helm'],['API Gateway','Kong \u00b7 Traefik \u00b7 APISIX \u00b7 Ambassador/Emissary','tag-green','Helm'],['Registry','Harbor \u00b7 Nexus \u00b7 Docker Registry','tag-blue','Helm+TF'],['Ingress','Nginx Ingress \u00b7 Traefik \u00b7 ALB Ingress \u00b7 Contour','tag-green','Helm'],['Secrets','Vault \u00b7 Sealed Secrets \u00b7 External Secrets \u00b7 SOPS','tag-red','Helm'],['Backup & DR','Velero \u00b7 Kasten K10 \u00b7 etcd backup','tag-orange','Helm+TF'],['AI/ML','Ollama \u00b7 vLLM \u00b7 MLflow \u00b7 Kubeflow \u00b7 Seldon Core \u00b7 KServe \u00b7 Triton','tag-pink','Helm+TF'],['Identity','Keycloak \u00b7 Dex \u00b7 OAuth2 Proxy \u00b7 Authelia','tag-purple','Helm']];
+  var includes=[{icon:'\u2705',t:'Prerequisites',d:'Validates cluster, resources, CRDs'},{icon:'\u{1F4C4}',t:'values.yaml',d:'All params with defaults + comments'},{icon:'\u{1F30D}',t:'Env Profiles',d:'dev / staging / prod variants'},{icon:'\u{1F512}',t:'Security',d:'NetworkPolicies, RBAC, TLS, PSS'},{icon:'\u{1F4CA}',t:'Monitoring',d:'ServiceMonitor, Grafana dashboard, alerts'},{icon:'\u{1F48A}',t:'Health Checks',d:'Liveness, readiness, startup probes'},{icon:'\u2B06\uFE0F',t:'Upgrade Guide',d:'Step-by-step upgrade + rollback'},{icon:'\u{1F41B}',t:'Troubleshooting',d:'Top 20 errors with RCA + fixes'}];
+  var h=hdr('Deployment Engine','\u{1F680} Deployment Engine','100+ tools \u00b7 One-click deploy \u00b7 Helm/Terraform templates \u00b7 Environment profiles');
+  h+='<div class="content"><div class="search-box"><span class="si">\u{1F50D}</span><input placeholder="Search deployment templates..." oninput="filterTable(this,\'deploy-table\')"></div>';
+  h+=tbl(['Category','Tools Available','Type'],cats.map(function(r){return '<tr><td><span class="cell-tag '+r[2]+'">'+r[0]+'</span></td><td style="font-size:12px">'+r[1]+'</td><td><span class="cell-code">'+r[3]+'</span></td></tr>'}).join('')).replace('<table','<table id="deploy-table"');
+  h+='<h3 style="font-size:15px;margin:24px 0 16px">Each Template Includes</h3><div class="grid grid-4">';
+  includes.forEach(function(f){h+='<div class="card"><div style="font-size:20px;margin-bottom:6px">'+f.icon+'</div><h3>'+f.t+'</h3><div class="desc">'+f.d+'</div></div>'});
+  h+='</div></div>';return h;
+};
+</script>

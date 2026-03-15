@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: archon-config
+  namespace: archon
+data:
+  DATABASE_URL: ""
+  FRONTEND_URL: "https://archon.example.com"
+  ARCHON_API_URL: "https://api.archon.example.com"
+  PORT: "3000"
+  GITHUB_APP_ID: ""
+  GITHUB_CLIENT_ID: ""
+  GITHUB_WEBHOOK_SECRET: ""
+  ARCHON_ACTION_REF: "vediyappanm/archon-action@v1"
+  OLLAMA_URL: "http://ollama:11434/v1"
+  OLLAMA_MODEL: "llama3.2"

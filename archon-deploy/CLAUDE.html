@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLAUDE.md — Archon Deploy</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    line-height: 1.6;
+    color: #24292e;
+  }
+  h1 { border-bottom: 2px solid #e1e4e8; padding-bottom: 8px; }
+  h2 { border-bottom: 1px solid #e1e4e8; padding-bottom: 6px; margin-top: 32px; }
+  h3 { margin-top: 24px; }
+  code {
+    background: #f6f8fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  pre {
+    background: #f6f8fa;
+    padding: 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+  }
+  pre code { background: none; padding: 0; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+  }
+  th, td {
+    border: 1px solid #d0d7de;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th { background: #f6f8fa; font-weight: 600; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+  strong { color: #1a1a1a; }
+</style>
+</head>
+<body>
+<h1>CLAUDE.md</h1>
+<p>This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.</p>
+<h2>Repository Structure</h2>
+<p>This is a monorepo with two packages:
+- <code>archon-api/</code> — Hono-based Node.js API server (TypeScript, ESM)
+- <code>archon-app/</code> — React SPA frontend (TypeScript, Vite)
+- <code>k8s/</code> — Kubernetes manifests (namespace, configmap, secrets, deployments, ingress, cert-manager)</p>
+<h2>Commands</h2>
+<h3>API (<code>archon-api/</code>)</h3>
+<div class="codehilite"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>dev<span class="w">            </span><span class="c1"># Start with hot-reload via tsx watch</span>
+npm<span class="w"> </span>run<span class="w"> </span>build<span class="w">          </span><span class="c1"># TypeScript compile to dist/</span>
+npm<span class="w"> </span>run<span class="w"> </span>start<span class="w">          </span><span class="c1"># Run compiled output (production)</span>
+npm<span class="w"> </span>run<span class="w"> </span><span class="nb">test</span><span class="w">           </span><span class="c1"># Type-check only (tsc --noEmit)</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:auth<span class="w">      </span><span class="c1"># Run auth integration test</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:webhooks<span class="w">  </span><span class="c1"># Run webhook integration test</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:dedup<span class="w">     </span><span class="c1"># Run dedup test</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:all<span class="w">       </span><span class="c1"># Run all integration tests (webhooks + auth)</span>
+npm<span class="w"> </span>run<span class="w"> </span>tunnel<span class="w">         </span><span class="c1"># Start Smee webhook tunnel (programmatic, avoids smee-client v5 URL bug)</span>
+npm<span class="w"> </span>run<span class="w"> </span>tunnel:cli<span class="w">     </span><span class="c1"># Start Smee webhook tunnel (CLI)</span>
+</code></pre></div>
+
+<h3>App (<code>archon-app/</code>)</h3>
+<div class="codehilite"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>dev<span class="w">          </span><span class="c1"># Start Vite dev server</span>
+npm<span class="w"> </span>run<span class="w"> </span>build<span class="w">        </span><span class="c1"># Type-check (tsc -b) + Vite build to dist/</span>
+npm<span class="w"> </span>run<span class="w"> </span>lint<span class="w">         </span><span class="c1"># ESLint (flat config, ESLint 9)</span>
+npm<span class="w"> </span>run<span class="w"> </span>preview<span class="w">      </span><span class="c1"># Preview production build</span>
+</code></pre></div>
+
+<h3>Database (<code>archon-api/</code>)</h3>
+<div class="codehilite"><pre><span></span><code>npx<span class="w"> </span>drizzle-kit<span class="w"> </span>generate<span class="w">   </span><span class="c1"># Generate migration from schema changes</span>
+npx<span class="w"> </span>drizzle-kit<span class="w"> </span>migrate<span class="w">    </span><span class="c1"># Apply pending migrations</span>
+npx<span class="w"> </span>drizzle-kit<span class="w"> </span>studio<span class="w">     </span><span class="c1"># Open Drizzle Studio GUI</span>
+</code></pre></div>
+
+<p>Drizzle config reads <code>DATABASE_URL</code> from <code>.env</code> via <code>dotenv/config</code>.</p>
+<h3>Docker</h3>
+<p>Both packages have multi-stage Dockerfiles:
+- <code>archon-api/Dockerfile</code> — builds with <code>tsc</code>, runs as non-root <code>archon</code> user, exposes port 3000
+- <code>archon-app/Dockerfile</code> — builds with Vite (accepts <code>VITE_API_URL</code> build arg), serves via nginx on port 80 with SPA routing</p>
+<h2>Architecture</h2>
+<h3>API Server</h3>
+<p><strong>Entry point:</strong> <code>archon-api/src/index.ts</code> — Hono app that mounts all route groups:
+- <code>/api/*</code> — authenticated API routes (repos, reviews, coaching, team, webhooks, tasks, events, billing, analytics, reports)
+- <code>/api/v1</code> — public/external API (<code>routes/api-v1.ts</code>)
+- <code>/api/admin</code> — admin routes (<code>routes/admin.ts</code>)
+- <code>/api/health</code> — health check
+- <code>/webhook/github</code> — GitHub App webhooks (<code>routes/webhook.ts</code>)
+- <code>/webhook/results</code> — AI result callbacks (<code>routes/results.ts</code>)</p>
+<p><strong>GitHub webhook flow:</strong>
+- <code>POST /webhook/github</code> → <code>routes/webhook.ts</code> dispatches to handlers for issue comments, PRs, PR reviews, check suites, releases, installations, issues
+- In-memory deduplication by <code>x-github-delivery</code> header with 5-minute TTL
+- Commands triggered via <code>/archon &lt;subcommand&gt;</code> or <code>/ac &lt;subcommand&gt;</code> in issue/PR comments, or by adding the <code>archon</code> label</p>
+<p><strong>Core review pipeline:</strong>
+1. <code>services/review-pipeline.ts</code> — orchestrator with progressive deepening (triage → review → self-check → validation loop)
+   - Loads <code>.archon/rules.yml</code> from target repo for path-scoped review instructions
+   - Self-check pass filters false positives before posting comments
+   - Validation loop verifies generated code fixes (up to 2 retries)
+2. <code>services/smart-context.ts</code> — priority-ranked context assembly (150K char budget across changed files, imports, importers, tests, memory, repo map)
+3. <code>services/repo-map.ts</code> — generates condensed repo structure map (file exports, imports, signatures) cached as <code>.archon/repo-map.json</code>; supports 13+ languages
+4. <code>services/review-engine.ts</code> — AI review logic; calls <code>services/ai-proxy.ts</code> for model routing
+5. <code>services/ai-proxy.ts</code> — model tier routing: free/pro/team → Groq <code>llama-3.3-70b-versatile</code> with tier-based token limits
+6. <code>services/static-scanner.ts</code> — zero-cost pre-AI static analysis (secrets, SQL injection, XSS, weak crypto, command injection, insecure config)
+7. <code>services/code-quality.ts</code> — cyclomatic/cognitive complexity scoring, test coverage gap detection, dead code detection
+8. <code>services/feedback-learning.ts</code> — tracks GitHub reactions to review comments, stores learnings, injects relevant past learnings into future prompts</p>
+<p><strong>Other key services:</strong>
+- <code>services/auth.ts</code> — GitHub OAuth flow + JWT creation/verification (7-day tokens)
+- <code>services/github.ts</code> — GitHub App installation token generation
+- <code>services/coaching.ts</code> — developer profile updates and learning from reviews
+- <code>services/automation.ts</code> — auto-labels, PR description generation, risk scoring, dependency audit, CI failure analysis, release notes
+- <code>services/project-memory.ts</code> — updates <code>.archon/memory.md</code> in repos on PR merge
+- <code>services/integration-webhooks.ts</code> — fan-out events to user-configured outbound webhooks
+- <code>services/dispatcher.ts</code> — alternative path that injects a temporary GitHub Actions workflow into the target repo</p>
+<p><strong>Auth middleware:</strong> <code>lib/authz.ts</code> exports <code>requireAuthUser()</code> (Bearer JWT → DB user lookup) and <code>hasMinimumRole()</code> for role checks. Roles: <code>viewer &lt; member &lt; admin &lt; owner</code>.</p>
+<p><strong>Real-time:</strong> <code>routes/sse.ts</code> streams events/reviews/tasks via Server-Sent Events, polling DB every 10 seconds. Auth uses query-param token (<code>?token=...</code>) since EventSource doesn't support headers.</p>
+<p><strong>Database:</strong> Drizzle ORM with PostgreSQL (<code>pg</code> pool). Schema in <code>src/db/schema.ts</code>, client in <code>src/db/client.ts</code>. Key tables: <code>organizations</code>, <code>users</code>, <code>repos</code>, <code>reviewResults</code>, <code>eventLogs</code>, <code>tasks</code>, <code>developerProfiles</code>, <code>learningEvents</code>, <code>integrationWebhooks</code>, <code>reviewLearnings</code>, <code>analyticsEvents</code>, <code>webhookDeliveries</code>.</p>
+<h3>Frontend</h3>
+<p><strong>Entry point:</strong> <code>archon-app/src/main.tsx</code> → <code>App.tsx</code></p>
+<p><strong>Auth flow:</strong> GitHub OAuth redirect sets JWT in <code>localStorage</code> as <code>archon_token</code>. Token is included as <code>Authorization: Bearer</code> header via Axios interceptor in <code>src/lib/api.ts</code>.</p>
+<p><strong>API client:</strong> <code>src/lib/api.ts</code> — all API calls go through a single Axios instance with base URL from <code>VITE_API_URL</code> env var (defaults to <code>http://localhost:3000</code>).</p>
+<p><strong>Real-time updates:</strong> <code>hooks/useRealtime.ts</code> opens an SSE connection to <code>/api/sse/stream</code>. Also exports <code>usePolling</code> for polling-based data refresh. <code>App.tsx</code> shows toast notifications on new events/reviews.</p>
+<p><strong>Routing:</strong> React Router v7 with routes: <code>/</code>, <code>/guide</code>, <code>/repos</code>, <code>/reviews</code>, <code>/coaching</code>, <code>/team</code>, <code>/webhooks</code>, <code>/tasks</code>, <code>/events</code>, <code>/billing</code>, <code>/analytics</code>, <code>/reports</code>.</p>
+<h2>Environment Variables</h2>
+<h3>API (<code>archon-api/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DATABASE_URL</code></td>
+<td>PostgreSQL connection string</td>
+</tr>
+<tr>
+<td><code>JWT_SECRET</code></td>
+<td>JWT signing secret</td>
+</tr>
+<tr>
+<td><code>GITHUB_APP_ID</code></td>
+<td>GitHub App numeric ID</td>
+</tr>
+<tr>
+<td><code>GITHUB_APP_PRIVATE_KEY</code></td>
+<td>GitHub App PEM private key (supports literal <code>\n</code> escape)</td>
+</tr>
+<tr>
+<td><code>GITHUB_CLIENT_ID</code></td>
+<td>GitHub OAuth App client ID</td>
+</tr>
+<tr>
+<td><code>GITHUB_CLIENT_SECRET</code></td>
+<td>GitHub OAuth App client secret</td>
+</tr>
+<tr>
+<td><code>GITHUB_WEBHOOK_SECRET</code></td>
+<td>Webhook signature verification secret</td>
+</tr>
+<tr>
+<td><code>GROQ_API_KEY</code></td>
+<td>Groq API key (primary AI provider)</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_API_KEY</code></td>
+<td>Anthropic API key (passed to dispatched agents)</td>
+</tr>
+<tr>
+<td><code>ARCHON_API_URL</code></td>
+<td>Public URL of this API (used in workflow dispatch)</td>
+</tr>
+<tr>
+<td><code>FRONTEND_URL</code></td>
+<td>Frontend URL for CORS (default: <code>http://localhost:5173</code>)</td>
+</tr>
+<tr>
+<td><code>PORT</code></td>
+<td>Server port (default: 3000)</td>
+</tr>
+<tr>
+<td><code>ARCHON_ACTION_REF</code></td>
+<td>GitHub Action ref to use (default: <code>vediyappanm/archon-action@v1</code>)</td>
+</tr>
+<tr>
+<td><code>STRIPE_SECRET_KEY</code></td>
+<td>Stripe API key for billing (without it, billing is disabled)</td>
+</tr>
+<tr>
+<td><code>STRIPE_PRICE_PRO</code></td>
+<td>Stripe price ID for Pro plan (optional — auto-bootstrapped if absent)</td>
+</tr>
+<tr>
+<td><code>STRIPE_PRICE_TEAM</code></td>
+<td>Stripe price ID for Team plan (optional — auto-bootstrapped if absent)</td>
+</tr>
+<tr>
+<td><code>SMEE_URL</code></td>
+<td>Smee.io channel URL for local dev webhook tunnel</td>
+</tr>
+</tbody>
+</table>
+<h3>App (<code>archon-app/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>VITE_API_URL</code></td>
+<td>API base URL (default: <code>http://localhost:3000</code>)</td>
+</tr>
+</tbody>
+</table>
+<h2>Key Patterns</h2>
+<ul>
+<li>All imports use <code>.js</code> extension even for <code>.ts</code> source files (ESM with TypeScript <code>"type": "module"</code>)</li>
+<li><code>verbatimModuleSyntax</code> is enabled — use <code>import type</code> for type-only imports</li>
+<li>GitHub App commands triggered via issue/PR comments matching <code>/archon &lt;subcommand&gt;</code> or <code>/ac &lt;subcommand&gt;</code></li>
+<li>Adding the <code>archon</code> label to an issue/PR also triggers the agent (issues → resolve, PRs → review)</li>
+<li>The <code>archon-token</code> passed to dispatched agents is a base64-encoded JSON <code>{ orgId }</code> — not the user JWT</li>
+<li>Target repos can configure Archon via <code>.archon/</code> directory: <code>memory.md</code> (project memory), <code>rules.yml</code> (path-scoped review instructions), <code>repo-map.json</code> (auto-generated), <code>reports/</code> (generated reports)</li>
+<li>Plan tiers: Free (unlimited requests, 8K tokens), Pro ($19/mo, 500 req, 8K tokens), Team ($49/mo, 2000 req, 8K tokens)</li>
+<li>Tests run via <code>tsx</code> directly (the <code>tests/</code> directory is excluded from <code>tsc</code> compilation)</li>
+</ul>
+</body>
+</html>

@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  fastapi:
+    build: .
+    container_name: soc-fastapi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/app/server
+      - ./tests-library:/app/tests-library
+    environment:
+      - APP_NAME=API Security Engine
+      - DEBUG=False
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/api_security
+      - REDIS_URL=redis://redis:6379/0
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KAFKA_ENABLED=True
+      - CORAZA_URL=http://coraza:8080
+      - TESTS_LIBRARY_PATH=/app/tests-library
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
+    command: uvicorn server.api.main:app --host 0.0.0.0 --port 8000
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: soc-postgres
+    environment:
+      - POSTGRES_USER=app_user
+      - POSTGRES_PASSWORD=generated_secure_password_here
+      - POSTGRES_DB=api_security
+    # ports:
+    #   - "5432:5432" # Keep internal to docker network
+    volumes:
+      - soc-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: soc-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - soc-redis-data:/data
+
+  kafka:
+    image: confluentinc/confluent-local:7.5.0
+    container_name: soc-kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,CONNECTIONS_FROM_HOST://0.0.0.0:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,CONNECTIONS_FROM_HOST://localhost:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,CONNECTIONS_FROM_HOST:PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+volumes:
+  soc-postgres-data:
+  soc-redis-data:

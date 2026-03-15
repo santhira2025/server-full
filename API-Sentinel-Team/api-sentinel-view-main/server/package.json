@@ -1,0 +1,14 @@
+{
+  "name": "api-sentinel-server",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "mongodb": "^6.10.0",
+    "cors": "^2.8.5"
+  }
+}

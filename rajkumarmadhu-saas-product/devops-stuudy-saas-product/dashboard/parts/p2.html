@@ -1,0 +1,65 @@
+<script>
+var PAGES={},afterRender={},chartInstances={};
+Chart.defaults.color='#8899aa';Chart.defaults.borderColor='#1e2a3f';
+
+function toggleMode(){
+  document.body.classList.toggle('light');
+  var L=document.body.classList.contains('light');
+  document.getElementById('modeIcon').innerHTML=L?'&#9728;&#65039;':'&#127769;';
+  document.getElementById('modeLabel').textContent=L?'Light Mode':'Dark Mode';
+  Chart.defaults.borderColor=L?'#d1d9e6':'#1e2a3f';
+  Chart.defaults.color=L?'#4a5568':'#8899aa';
+  localStorage.setItem('santhira-mode',L?'light':'dark');
+}
+if(localStorage.getItem('santhira-mode')==='light'){document.body.classList.add('light');document.getElementById('modeIcon').innerHTML='&#9728;&#65039;';document.getElementById('modeLabel').textContent='Light Mode';}
+
+var NAV=[
+  {section:"Platform",items:[{id:"overview",icon:"\u{1F3E0}",label:"Overview",badge:""},{id:"architecture",icon:"\u{1F3D7}\uFE0F",label:"Architecture",badge:"16"},{id:"techstack",icon:"\u2699\uFE0F",label:"Tech Stack",badge:"21"}]},
+  {section:"Core Modules",items:[{id:"learning",icon:"\u{1F4DA}",label:"Learning Engine",badge:"15"},{id:"deploy",icon:"\u{1F680}",label:"Deployment Engine",badge:"100+"},{id:"troubleshoot",icon:"\u{1F527}",label:"Troubleshooter AI",badge:"10K+"},{id:"interview",icon:"\u{1F3AF}",label:"Interview Engine",badge:"500+"},{id:"analyzer",icon:"\u{1F4CA}",label:"Log Analyzer",badge:""},{id:"expander",icon:"\u2728",label:"5-Point Expander",badge:""},{id:"configvault",icon:"\u{1F510}",label:"Config Vault",badge:"520+"}]},
+  {section:"Reference",items:[{id:"api",icon:"\u{1F50C}",label:"API Endpoints",badge:"47"},{id:"errors",icon:"\u{1F41B}",label:"Error Catalog",badge:"10K+"},{id:"coverage",icon:"\u{1F4C8}",label:"Content Matrix",badge:""},{id:"roadmap",icon:"\u{1F5FA}\uFE0F",label:"Roadmap & Revenue",badge:""}]},
+  {section:"Operations",items:[{id:"analytics",icon:"\u{1F4C9}",label:"Analytics",badge:"Live"},{id:"team",icon:"\u{1F465}",label:"Team & Settings",badge:""},{id:"security",icon:"\u{1F6E1}\uFE0F",label:"Security",badge:""},{id:"integrations",icon:"\u{1F517}",label:"Integrations",badge:"12"}]}
+];
+
+function renderNav(){
+  document.getElementById('nav').innerHTML=NAV.map(function(s){
+    return '<div class="nav-section"><div class="nav-section-title">'+s.section+'</div>'+s.items.map(function(i){
+      return '<div class="nav-item'+(i.id==='overview'?' active':'')+'" data-page="'+i.id+'" onclick="goTo(\''+i.id+'\')"><span class="nav-icon">'+i.icon+'</span><span>'+i.label+'</span>'+(i.badge?'<span class="nav-badge">'+i.badge+'</span>':'')+'</div>';
+    }).join('')+'</div>';
+  }).join('');
+}
+function goTo(id){
+  document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active')});
+  var el=document.querySelector('[data-page="'+id+'"]');if(el)el.classList.add('active');
+  document.querySelector('.sidebar').classList.remove('open');
+  renderPage(id);
+}
+function renderPage(id){
+  var m=document.getElementById('main');
+  m.style.opacity='0';
+  setTimeout(function(){
+    if(PAGES[id])m.innerHTML=PAGES[id]();
+    m.scrollTop=0;m.classList.add('page-enter');m.style.opacity='1';
+    if(afterRender[id])setTimeout(afterRender[id],300);
+    setTimeout(function(){m.classList.remove('page-enter')},400);
+  },120);
+}
+function switchTab(p,i){
+  document.querySelectorAll('#'+p+'-tabs .tab').forEach(function(t,j){t.classList.toggle('active',j===i)});
+  for(var j=0;j<10;j++){var el=document.getElementById(p+'-panel-'+j);if(el)el.style.display=j===i?'block':'none'}
+}
+function filterTable(inp,tid){
+  var q=inp.value.toLowerCase();
+  document.getElementById(tid).querySelectorAll('tbody tr').forEach(function(r){r.style.display=r.textContent.toLowerCase().includes(q)?'':'none'});
+}
+function animateCounter(el,target,suffix){
+  suffix=suffix||'';var start=0,dur=1200,step=target/(dur/16);
+  var t=setInterval(function(){start+=step;if(start>=target){el.textContent=target.toLocaleString()+suffix;clearInterval(t)}else el.textContent=Math.floor(start).toLocaleString()+suffix},16);
+}
+function destroyChart(k){if(chartInstances[k]){chartInstances[k].destroy();delete chartInstances[k]}}
+function hdr(crumb,title,desc){
+  return '<div class="page-header"><div class="bcrumb"><a onclick="goTo(\'overview\')">Home</a> / '+crumb+'</div><div class="hdr-row"><div><h2>'+title+'</h2><p>'+desc+'</p></div><div class="hdr-actions"><div class="bell" title="Notifications">\u{1F514}<span class="dot"></span></div></div></div></div>';
+}
+function tbl(headers,rows){
+  return '<div class="table-wrap"><table><thead><tr>'+headers.map(function(h){return '<th>'+h+'</th>'}).join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+</script>

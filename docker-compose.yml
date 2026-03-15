@@ -1,0 +1,299 @@
+# ==============================================================
+# DevOps Nexus — Complete Platform Docker Compose
+# 12 AI-Powered MCP Servers + Backend Infrastructure
+# Author: Santhira (Rajkumar Madhu)
+# ==============================================================
+
+version: '3.9'
+
+x-mcp-common: &mcp-common
+  restart: unless-stopped
+  networks:
+    - nexus-net
+  deploy:
+    resources:
+      limits:
+        memory: 512M
+        cpus: '0.5'
+
+services:
+  # ============ BACKEND INFRASTRUCTURE ============
+
+  redis:
+    image: redis:7.2-alpine
+    ports: ["6379:6379"]
+    volumes: ["redis-data:/data"]
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes
+    networks: [nexus-net]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports: ["5672:5672", "15672:15672"]
+    volumes: ["rabbitmq-data:/var/lib/rabbitmq"]
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-changeme}
+    networks: [nexus-net]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 15s
+
+  postgres:
+    image: postgres:16-alpine
+    ports: ["5432:5432"]
+    volumes: ["pg-data:/var/lib/postgresql/data"]
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-changeme}
+      POSTGRES_DB: santhira
+    networks: [nexus-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+
+  mongo:
+    image: mongo:7.0
+    ports: ["27017:27017"]
+    volumes: ["mongo-data:/data/db"]
+    networks: [nexus-net]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: 'SanthiraNexusKafkaCluster01'
+    volumes: ["kafka-data:/var/lib/kafka/data"]
+    networks: [nexus-net]
+
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    ports: ["9200:9200"]
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes: ["es-data:/usr/share/elasticsearch/data"]
+    networks: [nexus-net]
+
+  prometheus:
+    image: prom/prometheus:v2.50.0
+    ports: ["9090:9090"]
+    volumes:
+      - prometheus-data:/prometheus
+    command: --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.retention.time=15d
+    networks: [nexus-net]
+
+  vault:
+    image: hashicorp/vault:1.15
+    ports: ["8200:8200"]
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: root
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    cap_add: [IPC_LOCK]
+    networks: [nexus-net]
+
+  # ============ MCP SERVERS ============
+
+  redis-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: redis_nexus_mcp.py
+        PORT: 8000
+    ports: ["8000:8000"]
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on: [redis]
+
+  rabbit-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: rabbit_nexus_mcp.py
+        PORT: 8001
+    ports: ["8001:8001"]
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: admin
+      RABBITMQ_PASS: ${RABBITMQ_PASSWORD:-changeme}
+    depends_on: [rabbitmq]
+
+  postgres-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: postgres_nexus_mcp.py
+        PORT: 8002
+    ports: ["8002:8002"]
+    environment:
+      DATABASE_URL: postgresql://admin:${PG_PASSWORD:-changeme}@postgres:5432/santhira
+    depends_on: [postgres]
+
+  k8s-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: k8s_nexus_mcp.py
+        PORT: 8003
+    ports: ["8003:8003"]
+    volumes:
+      - ${HOME}/.kube:/home/appuser/.kube:ro
+
+  docker-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: docker_nexus_mcp.py
+        PORT: 8004
+    ports: ["8004:8004"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  nginx-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: nginx_nexus_mcp.py
+        PORT: 8005
+    ports: ["8005:8005"]
+
+  mongo-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: mongo_nexus_mcp.py
+        PORT: 8006
+    ports: ["8006:8006"]
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+    depends_on: [mongo]
+
+  kafka-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: kafka_nexus_mcp.py
+        PORT: 8007
+    ports: ["8007:8007"]
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    depends_on: [kafka]
+
+  prometheus-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: prometheus_nexus_mcp.py
+        PORT: 8008
+    ports: ["8008:8008"]
+    environment:
+      PROMETHEUS_URL: http://prometheus:9090
+    depends_on: [prometheus]
+
+  terraform-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: terraform_nexus_mcp.py
+        PORT: 8009
+    ports: ["8009:8009"]
+    volumes:
+      - ${HOME}/.terraform.d:/home/appuser/.terraform.d:ro
+      - ${HOME}/.aws:/home/appuser/.aws:ro
+
+  vault-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: vault_nexus_mcp.py
+        PORT: 8010
+    ports: ["8010:8010"]
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: root
+    depends_on: [vault]
+
+  elastic-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: elastic_nexus_mcp.py
+        PORT: 8011
+    ports: ["8011:8011"]
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    depends_on: [elasticsearch]
+
+  git-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: git_nexus_mcp.py
+        PORT: 8012
+    ports: ["8012:8012"]
+    volumes:
+      - ${HOME}/.gitconfig:/home/appuser/.gitconfig:ro
+
+  linux-nexus:
+    <<: *mcp-common
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+      args:
+        MCP_SERVER: linux_nexus_mcp.py
+        PORT: 8013
+    ports: ["8013:8013"]
+    privileged: true
+
+volumes:
+  redis-data:
+  rabbitmq-data:
+  pg-data:
+  mongo-data:
+  kafka-data:
+  es-data:
+  prometheus-data:
+
+networks:
+  nexus-net:
+    driver: bridge

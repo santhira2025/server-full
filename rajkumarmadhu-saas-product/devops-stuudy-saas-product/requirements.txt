@@ -1,0 +1,58 @@
+# ── Core Web Framework ──────────────────────────────
+fastapi[standard]
+uvicorn[standard]
+starlette
+python-multipart
+
+# ── Data Validation ──────────────────────────────────
+pydantic
+pydantic-settings
+pydantic-extra-types
+annotated-types
+typing-extensions
+typing-inspection
+
+# ── HTTP & Networking ────────────────────────────────
+httpx
+httpcore
+h11
+anyio
+websockets
+httptools
+
+# ── Templating & Rendering ───────────────────────────
+jinja2
+MarkupSafe
+pygments
+mdurl
+
+# ── CLI & Dev Tools ──────────────────────────────────
+click
+rich
+rich-toolkit
+shellingham
+fastapi-cli
+watchfiles
+uvloop
+
+# ── Config & Environment ─────────────────────────────
+python-dotenv
+pyyaml
+
+# ── Validation & Email ───────────────────────────────
+email-validator
+dnspython
+urllib3
+
+# ── Monitoring & Observability ───────────────────────
+sentry-sdk
+
+# ── AI & LLM Integrations ────────────────────────────
+anthropic
+openai
+google-generativeai
+
+# ── Testing ──────────────────────────────────────────
+pytest
+pytest-asyncio
+httpx

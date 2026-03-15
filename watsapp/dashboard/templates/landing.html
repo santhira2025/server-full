@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Argus AI | 10x Your Sales with WhatsApp AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            /* Archon Purple */
+            --secondary: #a855f7;
+            --accent: #22c55e;
+            --bg: #ffffff;
+            --surface: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --glass: rgba(255, 255, 255, 0.8);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Background Blobs */
+        .ambient-blob {
+            position: fixed;
+            width: 60vw;
+            height: 60vw;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: -1;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+
+        .blob-1 {
+            top: -10%;
+            right: -10%;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+        }
+
+        .blob-2 {
+            bottom: -10%;
+            left: -10%;
+            background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+        }
+
+        /* Navbar */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 8%;
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+            text-decoration: none;
+        }
+
+        .logo i {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-ghost {
+            color: var(--text-main);
+        }
+
+        .btn-ghost:hover {
+            background: var(--surface);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 20px -3px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 10rem 8% 6rem;
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            align-items: center;
+            gap: 4rem;
+        }
+
+        .hero-content h1 {
+            font-size: 4.2rem;
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -3px;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-content h1 span {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero-content p {
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+            max-width: 540px;
+        }
+
+        .hero-visual {
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .radar-box {
+            width: 420px;
+            height: 420px;
+            background: white;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .radar-circle {
+            position: absolute;
+            border: 1px dashed var(--border);
+            border-radius: 50%;
+        }
+
+        .radar-1 {
+            width: 100px;
+            height: 100px;
+        }
+
+        .radar-2 {
+            width: 220px;
+            height: 220px;
+        }
+
+        .radar-3 {
+            width: 340px;
+            height: 340px;
+        }
+
+        .radar-dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--primary);
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 2.5rem 8%;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .stat-item h4 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-item p {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Feature Section */
+        .features {
+            padding: 8rem 8%;
+            text-align: center;
+        }
+
+        .section-tag {
+            color: var(--primary);
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .features h2 {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -2px;
+            margin-bottom: 4rem;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 3rem 2.5rem;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            text-align: left;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            background: #f5f3ff;
+            color: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 1024px) {
+            .hero {
+                grid-template-columns: 1fr;
+                text-align: center;
+                padding-top: 8rem;
+            }
+
+            .hero-content h1 {
+                font-size: 3.2rem;
+            }
+
+            .hero-content p {
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-blob blob-1"></div>
+    <div class="ambient-blob blob-2"></div>
+
+    <nav>
+        <a href="/" class="logo">
+            <i class="ri-radar-fill"></i>
+            ARGUS
+        </a>
+        <div class="nav-links">
+            <a href="#features">Features</a>
+            <a href="#enterprise">Enterprise</a>
+            <a href="/dashboard/login">Login</a>
+            <a href="/dashboard/signup" class="btn btn-primary">Try for free</a>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <span class="section-tag">AI Powered WhatsApp Automation</span>
+            <h1>Sales on <span>Autopilot</span>. 10x Faster.</h1>
+            <p>Deploy persistent, intelligent AI agents that qualify leads, handle objections, and schedule meetings on
+                WhatsApp while you sleep.</p>
+            <div style="display: flex; gap: 1rem;">
+                <a href="/dashboard/signup" class="btn btn-primary"
+                    style="padding: 1rem 2.5rem; font-size: 1.05rem;">Get Started Now <i
+                        class="ri-arrow-right-line"></i></a>
+                <a href="#how" class="btn btn-ghost" style="padding: 1rem 2rem;">Watch Demo</a>
+            </div>
+        </div>
+        <div class="hero-visual">
+            <div class="radar-box">
+                <div class="radar-circle radar-1"></div>
+                <div class="radar-circle radar-2"></div>
+                <div class="radar-circle radar-3"></div>
+                <div class="radar-dot" style="top: 30%; left: 70%;"></div>
+                <div class="radar-dot"
+                    style="top: 60%; left: 20%; background: var(--accent); box-shadow: 0 0 15px var(--accent);"></div>
+                <div style="font-weight: 800; color: #cbd5e1; font-size: 0.8rem; position: absolute; bottom: 20px;">
+                    ACTIVE SCANNING...</div>
+            </div>
+        </div>
+    </header>
+
+    <section class="stats-bar">
+        <div class="stat-item">
+            <h4>2.5M+</h4>
+            <p>Messages Analyzed</p>
+        </div>
+        <div class="stat-item">
+            <h4>92%</h4>
+            <p>Lead Qualification</p>
+        </div>
+        <div class="stat-item">
+            <h4>10x</h4>
+            <p>Response Speed</p>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <span class="section-tag">Built for Growth</span>
+        <h2>Everything you need to scale sales</h2>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon"><i class="ri-brain-line"></i></div>
+                <h3>Advanced Memory</h3>
+                <p>Argus remembers every customer detail and context from months ago, ensuring personalized sales
+                    pitches every time.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="ri-shield-check-line"></i></div>
+                <h3>Secure & Private</h3>
+                <p>Your business data is isolated in private cloud-hosted database nodes. We never use your data to
+                    train public models.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon"><i class="ri-speed-up-line"></i></div>
+                <h3>Instant Responses</h3>
+                <p>AI responds in under 2 seconds, maintaining the momentum of the sales conversation and increasing
+                    conversion rates.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer
+        style="padding: 5rem 8%; text-align: center; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 0.9rem;">
+        <p>&copy; 2026 Argus Technologies Group. All rights reserved.</p>
+    </footer>
+</body>
+
+</html>

@@ -1,0 +1,38 @@
+<script>
+// ========== LOG ANALYZER ==========
+PAGES.analyzer=function(){
+  var formats=[['Application Logs','Plain text, JSON, structured logs'],['Kubernetes','kubectl logs, pod/cluster events'],['System Logs','syslog, journalctl, dmesg, auth.log'],['Web Server','Nginx/Apache access & error logs'],['Database','PostgreSQL, MySQL slow query, MongoDB profiler'],['CI/CD','Jenkins, GitHub Actions, GitLab CI'],['Monitoring','Prometheus export, Grafana JSON, CloudWatch'],['Terraform','Plan output, apply output, state analysis'],['Cloud','CloudTrail, Azure Activity, GCP Audit'],['Custom','Any CSV/JSON structured data']];
+  var caps=[{icon:'\u{1F50D}',t:'Pattern Detection',d:'Recurring patterns, error clusters, frequency trends'},{icon:'\u{1F4C8}',t:'Anomaly Detection',d:'Statistical + ML anomaly scoring'},{icon:'\u{1F3AF}',t:'Root Cause Analysis',d:'Error chain tracing across systems'},{icon:'\u23F1\uFE0F',t:'Timeline',d:'Event reconstruction with correlations'},{icon:'\u{1F4B0}',t:'Cost Analysis',d:'Cloud cost, waste identification'},{icon:'\u{1F4C4}',t:'Report Generation',d:'PDF/DOCX with charts + recommendations'}];
+  var h=hdr('Log Analyzer','\u{1F4CA} Log & Report Analyzer','Upload logs \u2192 AI analysis \u00b7 Pattern detection \u00b7 Anomaly scoring \u00b7 Report generation');
+  h+='<div class="content"><div class="grid grid-2" style="margin-bottom:24px"><div><h3 style="font-size:15px;margin-bottom:12px">Supported Input Formats</h3>'+tbl(['Type','Formats'],formats.map(function(r){return '<tr><td><strong>'+r[0]+'</strong></td><td style="font-size:12px">'+r[1]+'</td></tr>'}).join(''))+'</div><div><h3 style="font-size:15px;margin-bottom:12px">Analysis Capabilities</h3>';
+  caps.forEach(function(f){h+='<div class="card" style="padding:12px;margin-bottom:8px"><div style="display:flex;gap:10px;align-items:center"><span style="font-size:18px">'+f.icon+'</span><div><strong style="font-size:13px">'+f.t+'</strong><div class="desc">'+f.d+'</div></div></div></div>'});
+  h+='</div></div>';
+  // Upload UI
+  h+='<div class="card-premium" style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:12px">\u{1F4E4}</div><h3 style="font-size:16px;margin-bottom:8px">Drag & Drop Log Files</h3><div class="desc" style="margin-bottom:16px">Supports .log, .txt, .json, .csv \u2014 Max 100MB per file</div><div style="display:inline-block;padding:10px 24px;background:linear-gradient(135deg,var(--accent),var(--blue));border-radius:var(--radius2);color:#0a0e17;font-weight:600;font-size:13px;cursor:pointer">Browse Files</div></div>';
+  h+='</div>';return h;
+};
+
+// ========== 5-POINT EXPANDER ==========
+PAGES.expander=function(){
+  var sections=[{n:'1',t:'Concept Overview',d:'Complete explanation with architecture diagram'},{n:'2',t:'Configuration Files',d:'HPA YAML, KEDA ScaledObject, Prometheus Adapter'},{n:'3',t:'Step-by-Step Guide',d:'7-step install \u2192 configure \u2192 deploy \u2192 test \u2192 monitor'},{n:'4',t:'Architecture Diagram',d:'Pod \u2192 Metrics \u2192 HPA \u2192 Scale + KEDA flow'},{n:'5',t:'Best Practices',d:'Stabilization windows, PDB coordination, cost'},{n:'6',t:'Errors & Fixes',d:'Unknown metric, connection refused, flapping'},{n:'7',t:'Interview Questions',d:'10 Q&A with detailed answers and follow-ups'},{n:'8',t:'Real Scenario',d:'Black Friday: HPA + KEDA handling traffic spike'},{n:'9',t:'Quick Reference',d:'kubectl commands, HPA status, KEDA CRD ref'},{n:'10',t:'Download',d:'All configs as YAML + guide as DOCX/PDF'}];
+  var h=hdr('5-Point Expander','\u2728 5-Point Expander','Enter 5 keywords \u2192 Complete documentation with configs, diagrams, Q&A, scenarios');
+  h+='<div class="content"><div class="card-premium" style="padding:24px;margin-bottom:24px"><h3 style="color:var(--accent);margin-bottom:12px">\u{1F4A1} Example Input</h3><div class="code-block" style="font-size:16px;color:var(--accent)">Keywords: Kubernetes \u00b7 HPA \u00b7 Custom Metrics \u00b7 KEDA \u00b7 Scaling Strategy</div>';
+  h+='<h3 style="color:var(--accent);margin:16px 0 12px">\u{1F4C4} Generated Output (10 Sections)</h3><div class="grid grid-2">';
+  sections.forEach(function(s){h+='<div style="display:flex;gap:10px;padding:8px;background:var(--bg3);border-radius:var(--radius2)"><div style="font-family:JetBrains Mono,monospace;color:var(--accent);font-weight:700;font-size:14px">'+s.n+'</div><div><strong style="font-size:13px">'+s.t+'</strong><div style="font-size:11px;color:var(--text2)">'+s.d+'</div></div></div>'});
+  h+='</div></div>';
+  // Try it form
+  h+='<div class="card" style="padding:24px"><h3 style="margin-bottom:12px">\u{1F680} Try It Now</h3><div style="display:flex;gap:8px;margin-bottom:12px">';
+  for(var i=1;i<=5;i++){h+='<input style="flex:1;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius2);color:var(--text);font-size:12px;outline:none" placeholder="Keyword '+i+'">';}
+  h+='</div><div style="display:inline-block;padding:10px 24px;background:linear-gradient(135deg,var(--accent),var(--blue));border-radius:var(--radius2);color:#0a0e17;font-weight:600;font-size:13px;cursor:pointer">\u2728 Generate Documentation</div></div>';
+  h+='</div>';return h;
+};
+
+// ========== CONFIG VAULT ==========
+PAGES.configvault=function(){
+  var configs=[['Prometheus','prometheus.yml \u00b7 alertmanager.yml \u00b7 recording rules \u00b7 alert rules for 50+ services','3'],['Grafana','grafana.ini \u00b7 provisioning \u00b7 dashboard JSON (K8s, Node, Docker, Nginx, PG, Redis, Kafka)','3'],['Kubernetes','Deployment \u00b7 StatefulSet \u00b7 DaemonSet \u00b7 Service \u00b7 Ingress \u00b7 NetworkPolicy \u00b7 RBAC \u00b7 PDB \u00b7 HPA','3'],['Nginx','nginx.conf (reverse proxy, LB, SSL, caching, rate limiting, headers, WebSocket, HTTP/2)','3'],['Docker','Dockerfile (multi-stage, hardened) \u00b7 docker-compose.yml \u00b7 .dockerignore','3'],['Terraform','main.tf \u00b7 variables.tf \u00b7 outputs.tf \u00b7 backend.tf \u2014 VPC, EKS, RDS, S3, IAM, Lambda','3'],['CI/CD','Jenkinsfile \u00b7 GitHub workflows \u00b7 .gitlab-ci.yml \u00b7 Tekton \u00b7 ArgoCD Application','3'],['Helm','Chart.yaml \u00b7 values.yaml (dev/staging/prod) \u00b7 templates/ per tool','3'],['Linux','sshd_config \u00b7 sysctl.conf \u00b7 limits.conf \u00b7 logrotate.conf \u00b7 fstab \u00b7 systemd units','2'],['PostgreSQL','postgresql.conf (workload tuned) \u00b7 pg_hba.conf \u00b7 pgbouncer.ini','3'],['Redis','redis.conf (standalone/sentinel/cluster) \u00b7 persistence \u00b7 memory optimization','3'],['Elasticsearch','elasticsearch.yml \u00b7 jvm.options \u00b7 ILM policies \u00b7 index templates','3'],['Kafka','server.properties \u00b7 consumer/producer \u00b7 connect-distributed','3'],['Security','OPA/Rego \u00b7 Kyverno policies \u00b7 Falco rules \u00b7 WAF rules \u00b7 NetworkPolicies','2'],['OpenTelemetry','OTel Collector config \u00b7 Loki config \u00b7 Tempo config \u00b7 Thanos/Mimir config','3']];
+  var h=hdr('Config Vault','\u{1F510} Configuration Vault','520+ production-ready configs \u00b7 Environment-specific \u00b7 Versioned \u00b7 Annotated');
+  h+='<div class="content"><div class="search-box"><span class="si">\u{1F50D}</span><input placeholder="Search configurations..." oninput="filterTable(this,\'config-table\')"></div>';
+  h+=tbl(['Tool','Configurations Available','Envs'],configs.map(function(r){return '<tr><td><strong>'+r[0]+'</strong></td><td style="font-size:12px">'+r[1]+'</td><td style="font-family:JetBrains Mono,monospace;color:var(--accent);text-align:center">'+r[2]+'</td></tr>'}).join('')).replace('<table','<table id="config-table"');
+  h+='</div>';return h;
+};
+</script>

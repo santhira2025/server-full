@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: archon-api
+  namespace: archon
+  labels:
+    app: archon-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: archon-api
+  template:
+    metadata:
+      labels:
+        app: archon-api
+    spec:
+      containers:
+        - name: archon-api
+          image: archon-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: archon-config
+            - secretRef:
+                name: archon-secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: archon-api
+  namespace: archon
+spec:
+  selector:
+    app: archon-api
+  ports:
+    - port: 80
+      targetPort: 3000
+      name: http
+  type: ClusterIP

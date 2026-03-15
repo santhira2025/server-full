@@ -1,0 +1,101 @@
+expose:
+  type: ingress
+  tls:
+    enabled: true
+    certSource: secret
+    secret:
+      secretName: harbor-tls
+  ingress:
+    hosts:
+      core: harbor.santhira.com
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+
+externalURL: https://harbor.santhira.com
+
+harborAdminPassword: "Santhira@2026"
+
+# Use existing MinIO as S3 storage for all components
+persistence:
+  enabled: true
+  resourcePolicy: ""
+  persistentVolumeClaim:
+    registry:
+      storageClass: saas-aiops-storage
+      size: 50Gi
+    jobservice:
+      jobLog:
+        storageClass: saas-aiops-storage
+        size: 1Gi
+    database:
+      storageClass: saas-aiops-storage
+      size: 5Gi
+    redis:
+      storageClass: saas-aiops-storage
+      size: 1Gi
+    trivy:
+      storageClass: saas-aiops-storage
+      size: 5Gi
+  imageChartStorage:
+    disableredirect: true
+    type: s3
+    s3:
+      region: us-east-1
+      bucket: harbor-registry
+      accesskey: minioadmin
+      secretkey: "MinIO@saas2024"
+      regionendpoint: http://minio-api.minio-saas.svc.cluster.local:9000
+      secure: false
+      v4auth: true
+
+# Minimal CPU requests — node is at 99% CPU requests
+portal:
+  resources:
+    requests:
+      cpu: 1m
+      memory: 64Mi
+
+core:
+  resources:
+    requests:
+      cpu: 1m
+      memory: 128Mi
+
+jobservice:
+  resources:
+    requests:
+      cpu: 1m
+      memory: 128Mi
+
+registry:
+  resources:
+    requests:
+      cpu: 1m
+      memory: 128Mi
+
+trivy:
+  enabled: true
+  resources:
+    requests:
+      cpu: 1m
+      memory: 128Mi
+
+database:
+  type: internal
+  internal:
+    resources:
+      requests:
+        cpu: 1m
+        memory: 128Mi
+
+redis:
+  type: internal
+  internal:
+    resources:
+      requests:
+        cpu: 1m
+        memory: 64Mi
