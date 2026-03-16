@@ -1,0 +1,78 @@
+---
+# MinIO Console UI — https://ls-minio.finspot.in
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-console-ingress
+  namespace: minio
+  labels:
+    app: minio
+    project: linkedeye
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-source: k8s
+    alb.ingress.kubernetes.io/healthcheck-path: /minio/health/live
+    alb.ingress.kubernetes.io/healthcheck-port: "9000"
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/group.name: linkedeye-tools
+    alb.ingress.kubernetes.io/tags: "Project=LinkedEye,Environment=prod"
+spec:
+  tls:
+    - hosts:
+        - ls-minio.finspot.in
+      secretName: finspot-tls
+  rules:
+    - host: ls-minio.finspot.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-console-svc
+                port:
+                  number: 9001
+
+---
+# MinIO S3 API — https://ls-minio-api.finspot.in
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio-api-ingress
+  namespace: minio
+  labels:
+    app: minio
+    project: linkedeye
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-source: k8s
+    alb.ingress.kubernetes.io/healthcheck-path: /minio/health/ready
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/group.name: linkedeye-tools
+    alb.ingress.kubernetes.io/tags: "Project=LinkedEye,Environment=prod"
+spec:
+  tls:
+    - hosts:
+        - ls-minio-api.finspot.in
+      secretName: finspot-tls
+  rules:
+    - host: ls-minio-api.finspot.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-api-svc
+                port:
+                  number: 9000

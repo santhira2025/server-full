@@ -1,0 +1,24 @@
+---
+# Keycloak Web UI + API service
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-svc
+  namespace: keycloak
+  labels:
+    app: keycloak
+    project: linkedeye
+  annotations:
+    alb.ingress.kubernetes.io/healthcheck-path: /health/ready
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30081
+    - name: management
+      port: 9000
+      targetPort: 9000
+  type: NodePort

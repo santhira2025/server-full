@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: le-postgres-pvc
+  namespace: le-postgres
+  labels:
+    app: le-postgres
+    project: linkedeye
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 100Gi    # Shared across all tools

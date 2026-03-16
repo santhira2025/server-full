@@ -1,0 +1,41 @@
+---
+# Jenkins Web UI service (for ALB ingress)
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-svc
+  namespace: jenkins
+  labels:
+    app: jenkins
+    project: linkedeye
+  annotations:
+    # ALB health check path
+    alb.ingress.kubernetes.io/healthcheck-path: /login
+spec:
+  selector:
+    app: jenkins
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  type: NodePort
+
+---
+# Jenkins Agent JNLP service (for K8s agents to connect back)
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-agent-svc
+  namespace: jenkins
+  labels:
+    app: jenkins
+    project: linkedeye
+spec:
+  selector:
+    app: jenkins
+  ports:
+    - name: agent
+      port: 50000
+      targetPort: 50000
+  type: NodePort

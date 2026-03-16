@@ -22,6 +22,7 @@ CLIENT_NAME="${2:-}"
 # ─── 16 CLIENT DEFINITIONS ───────────────────────────────────
 # Format: label:subnet:fqdn:firewall:namespace
 CLIENTS=(
+  "dev:172.16.0.72:fs-le-dev.finspot.in:FinSpot Office:le-dev"
   "indmoney:10.172.0.10:fs-le-indmoney.finspot.in:FortiGate 60F:le-indmoney-prod"
   "neo-wealth:10.40.1.10:fs-le-neo.finspot.in:FortiGate 60F:le-neo-wealth-prod"
   "dx:10.10.10.110:fs-le-dx.finspot.in:FortiGate 100F:le-dx-prod"
@@ -293,7 +294,6 @@ ACTIVATION=$(aws ssm create-activation \
   --registration-limit 50 \
   --default-instance-name "${PROJECT}-hybrid-worker" \
   --description "LinkedEye EKS Hybrid Node activation for on-prem client workers" \
-  --tags "Key=Project,Value=${TAG_PROJECT}" "Key=Environment,Value=${TAG_ENV}" \
   --output json)
 
 ACTIVATION_ID=$(echo "${ACTIVATION}" | jq -r '.ActivationId')

@@ -1,0 +1,76 @@
+---
+# ArgoCD Application Controller — watches K8s and syncs apps
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+  labels:
+    app: argocd-application-controller
+    project: linkedeye
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: argocd-application-controller
+  serviceName: argocd-application-controller
+  template:
+    metadata:
+      labels:
+        app: argocd-application-controller
+        project: linkedeye
+    spec:
+      serviceAccountName: argocd-application-controller
+      containers:
+        - name: argocd-application-controller
+          image: quay.io/argoproj/argocd:v2.10.0
+          command: [argocd-application-controller]
+          args:
+            - --status-processors=20
+            - --operation-processors=10
+            - --app-resync-period=180
+            - --self-heal-timeout-seconds=5
+            - --repo-server=argocd-repo-server:8081
+            - --redis=argocd-redis:6379
+          ports:
+            - containerPort: 8082   # metrics
+          env:
+            - name: ARGOCD_CONTROLLER_REPLICAS
+              value: "1"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+  labels:
+    app: argocd-application-controller
+    project: linkedeye
+spec:
+  selector:
+    app: argocd-application-controller
+  ports:
+    - name: metrics
+      port: 8082
+      targetPort: 8082
+  type: ClusterIP

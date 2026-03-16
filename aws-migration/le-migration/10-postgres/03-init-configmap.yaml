@@ -1,0 +1,56 @@
+---
+# Init script — runs on first startup
+# Creates all databases and users for every tool
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: le-postgres-init
+  namespace: le-postgres
+  labels:
+    app: le-postgres
+    project: linkedeye
+data:
+  init-databases.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "=========================================="
+    echo " LinkedEye PostgreSQL — Init Databases"
+    echo "=========================================="
+
+    # Function to create DB + user if not exists
+    create_db_and_user() {
+      local DB=$1
+      local USER=$2
+      local PASS=$3
+
+      echo "Creating user: ${USER} / db: ${DB}"
+
+      psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+        DO \$\$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${USER}') THEN
+            CREATE ROLE ${USER} LOGIN PASSWORD '${PASS}';
+          END IF;
+        END
+        \$\$;
+
+        SELECT 'CREATE DATABASE ${DB} OWNER ${USER}'
+        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '${DB}')\gexec
+
+        GRANT ALL PRIVILEGES ON DATABASE ${DB} TO ${USER};
+    EOSQL
+    }
+
+    # Create all tool databases
+    create_db_and_user "jenkinsdb"  "jenkins"  "${JENKINS_PASSWORD}"
+    create_db_and_user "harbordb"   "harbor"   "${HARBOR_PASSWORD}"
+    create_db_and_user "keycloakdb" "keycloak" "${KEYCLOAK_PASSWORD}"
+    create_db_and_user "vaultdb"    "vault"    "${VAULT_PASSWORD}"
+    create_db_and_user "argocddb"   "argocd"   "${ARGOCD_PASSWORD}"
+    create_db_and_user "redminedb"  "redmine"  "${REDMINE_PASSWORD}"
+    create_db_and_user "itsmdb"     "itsm"     "${ITSM_PASSWORD}"
+
+    echo "=========================================="
+    echo " All databases created successfully!"
+    echo "=========================================="

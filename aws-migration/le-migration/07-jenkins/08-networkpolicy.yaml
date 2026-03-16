@@ -1,0 +1,72 @@
+---
+# Allow Jenkins to receive traffic from ALB and agents
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: jenkins-network-policy
+  namespace: jenkins
+  labels:
+    app: jenkins
+    project: linkedeye
+spec:
+  podSelector:
+    matchLabels:
+      app: jenkins
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    # Allow from ALB (all nodes in VPC)
+    - ports:
+        - port: 8080
+    # Allow Jenkins agents to connect back
+    - ports:
+        - port: 50000
+
+  egress:
+    # Allow DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow outbound to internet (GitHub, plugin downloads)
+    - ports:
+        - port: 443
+        - port: 80
+    # Allow to PostgreSQL
+    - to:
+        - podSelector:
+            matchLabels:
+              app: jenkins-postgres
+      ports:
+        - port: 5432
+    # Allow to Kubernetes API
+    - ports:
+        - port: 6443
+        - port: 443
+
+---
+# Allow only Jenkins to talk to PostgreSQL
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: jenkins-postgres-network-policy
+  namespace: jenkins
+  labels:
+    app: jenkins-postgres
+    project: linkedeye
+spec:
+  podSelector:
+    matchLabels:
+      app: jenkins-postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: jenkins
+      ports:
+        - port: 5432

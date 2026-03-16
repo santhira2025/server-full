@@ -1,0 +1,76 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: harbor-core
+  namespace: harbor
+  labels:
+    app: harbor-core
+    project: linkedeye
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: harbor-core
+  template:
+    metadata:
+      labels:
+        app: harbor-core
+        project: linkedeye
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.35
+          command: ["sh", "-c", "until nc -z harbor-postgres-svc 5432; do sleep 3; done"]
+        - name: wait-for-redis
+          image: busybox:1.35
+          command: ["sh", "-c", "until nc -z harbor-redis-svc 6379; do sleep 3; done"]
+      containers:
+        - name: harbor-core
+          image: goharbor/harbor-core:v2.10.0
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: harbor-core-config
+            - secretRef:
+                name: harbor-core-secret
+            - secretRef:
+                name: harbor-postgres-secret
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/v2.0/ping
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /api/v2.0/ping
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: harbor-core-svc
+  namespace: harbor
+  labels:
+    app: harbor-core
+    project: linkedeye
+spec:
+  selector:
+    app: harbor-core
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP

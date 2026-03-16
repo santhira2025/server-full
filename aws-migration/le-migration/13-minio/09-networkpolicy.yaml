@@ -1,0 +1,35 @@
+---
+# Allow MinIO to receive from all namespaces (Jenkins, Velero, Harbor, Grafana)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: minio-network-policy
+  namespace: minio
+  labels:
+    app: minio
+    project: linkedeye
+spec:
+  podSelector:
+    matchLabels:
+      app: minio
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # S3 API from all namespaces
+    - ports:
+        - port: 9000
+    # Console from ALB
+    - ports:
+        - port: 9001
+  egress:
+    # DNS
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Keycloak SSO
+    - ports:
+        - port: 443
+        - port: 8080

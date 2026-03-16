@@ -1,0 +1,58 @@
+---
+# ============================================================
+# Jenkins ALB Ingress
+# URL:  https://le-jenkins.finspot.in
+# TLS:  GoDaddy wildcard *.finspot.in (own certificate)
+#
+# Pre-req: Run create-tle-secret.sh before applying this.
+# ============================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jenkins-ingress
+  namespace: jenkins
+  labels:
+    app: jenkins
+    project: linkedeye
+  annotations:
+    # AWS ALB Ingress Controller
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+
+    # Ports: HTTP redirects to HTTPS
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+
+    # TLS: Use own GoDaddy certificate from K8s secret (NOT ACM)
+    alb.ingress.kubernetes.io/certificate-source: k8s
+    alb.ingress.kubernetes.io/tle-cert-arn: ""
+
+    # Health check
+    alb.ingress.kubernetes.io/healthcheck-path: /login
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/success-codes: "200,302"
+
+    # Share ALB with other tools (ArgoCD, Harbor, Keycloak)
+    alb.ingress.kubernetes.io/group.name: linkedeye-tools
+
+    alb.ingress.kubernetes.io/tags: "Project=LinkedEye,Environment=prod"
+
+spec:
+  # Own GoDaddy wildcard cert *.finspot.in
+  tls:
+    - hosts:
+        - le-jenkins.finspot.in
+      secretName: finspot-tls
+
+  rules:
+    - host: le-jenkins.finspot.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jenkins-svc
+                port:
+                  number: 8080

@@ -1,0 +1,18 @@
+---
+# Internal service — accessible from all namespaces via full DNS
+# DNS: le-postgres-svc.le-postgres.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: le-postgres-svc
+  namespace: le-postgres
+  labels:
+    app: le-postgres
+    project: linkedeye
+spec:
+  selector:
+    app: le-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP

@@ -1,0 +1,123 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app: vault
+    project: linkedeye
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: vault
+        project: linkedeye
+      annotations:
+        # Restart when config changes
+        checksum/config: "vault-config-v1"
+    spec:
+      serviceAccountName: vault
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        fsGroup: 1000
+
+      initContainers:
+        # Wait for PostgreSQL
+        - name: wait-for-postgres
+          image: busybox:1.35
+          command: ["sh", "-c", "until nc -z le-postgres-svc.le-postgres.svc.cluster.local 5432; do echo 'waiting for postgres'; sleep 3; done"]
+          securityContext:
+            runAsUser: 0
+
+        # Create vault_kv_store table in PostgreSQL if not exists
+        - name: init-db
+          image: postgres:15-alpine
+          command:
+            - sh
+            - -c
+            - |
+              psql "postgres://vault:Vault@FinSpot2025!@le-postgres-svc.le-postgres.svc.cluster.local:5432/vaultdb?sslmode=disable" \
+                -c "CREATE TABLE IF NOT EXISTS vault_kv_store (
+                      parent_path TEXT COLLATE \"C\" NOT NULL,
+                      path        TEXT COLLATE \"C\",
+                      key         TEXT COLLATE \"C\",
+                      value       BYTEA,
+                      CONSTRAINT pkey PRIMARY KEY (path, key)
+                    );" \
+                -c "CREATE INDEX IF NOT EXISTS parent_path_idx ON vault_kv_store (parent_path);"
+              echo "Vault DB table ready."
+          securityContext:
+            runAsUser: 0
+
+      containers:
+        - name: vault
+          image: hashicorp/vault:1.15
+          command: ["vault", "server", "-config=/vault/config/vault.hcl"]
+          ports:
+            - name: http
+              containerPort: 8200
+            - name: cluster
+              containerPort: 8201
+
+          env:
+            - name: VAULT_ADDR
+              value: "http://127.0.0.1:8200"
+            - name: VAULT_API_ADDR
+              value: "https://ls-vault.finspot.in"
+            - name: SKIP_CHOWN
+              value: "true"
+            - name: SKIP_SETCAP
+              value: "true"
+            - name: HOME
+              value: "/home/vault"
+
+          securityContext:
+            capabilities:
+              add: ["IPC_LOCK"]    # Required for memory locking (security)
+
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
+            - name: vault-audit
+              mountPath: /vault/audit
+
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+
+          livenessProbe:
+            httpGet:
+              path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
+              port: 8200
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /v1/sys/health?standbyok=true
+              port: 8200
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+
+      volumes:
+        - name: vault-config
+          configMap:
+            name: vault-config
+        - name: vault-audit
+          persistentVolumeClaim:
+            claimName: vault-audit-pvc

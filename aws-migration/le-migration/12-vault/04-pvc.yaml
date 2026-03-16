@@ -1,0 +1,17 @@
+---
+# Vault audit log storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vault-audit-pvc
+  namespace: vault
+  labels:
+    app: vault
+    project: linkedeye
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 10Gi

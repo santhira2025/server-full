@@ -1,0 +1,42 @@
+---
+# ArgoCD ALB Ingress
+# URL: https://ls-argocd.finspot.in
+# TLS: GoDaddy wildcard *.finspot.in
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-ingress
+  namespace: argocd
+  labels:
+    app: argocd
+    project: linkedeye
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-source: k8s
+    alb.ingress.kubernetes.io/backend-protocol: HTTP    # --insecure flag set on server
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/group.name: linkedeye-tools
+    alb.ingress.kubernetes.io/tags: "Project=LinkedEye,Environment=prod"
+spec:
+  tls:
+    - hosts:
+        - ls-argocd.finspot.in
+      secretName: finspot-tls
+
+  rules:
+    - host: ls-argocd.finspot.in
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 8080

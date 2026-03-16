@@ -1,0 +1,135 @@
+---
+# Jenkins Configuration as Code (JCasC)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jenkins-casc-config
+  namespace: jenkins
+  labels:
+    app: jenkins
+    project: linkedeye
+data:
+  jenkins.yaml: |
+    jenkins:
+      systemMessage: "LinkedEye CI/CD — FinSpot Technology Solutions"
+      numExecutors: 0
+      mode: EXCLUSIVE
+      scmCheckoutRetryCount: 3
+
+      securityRealm:
+        local:
+          allowsSignup: false
+          users:
+            - id: "admin"
+              password: "${JENKINS_ADMIN_PASSWORD}"
+            - id: "rajkumar"
+              password: "${JENKINS_USER_PASSWORD}"
+
+      authorizationStrategy:
+        roleBased:
+          roles:
+            global:
+              - name: "admin"
+                description: "Jenkins Administrators"
+                permissions:
+                  - "Overall/Administer"
+                assignments:
+                  - "admin"
+                  - "rajkumar"
+              - name: "developer"
+                description: "Developers"
+                permissions:
+                  - "Overall/Read"
+                  - "Job/Build"
+                  - "Job/Read"
+                  - "Job/Workspace"
+                assignments:
+                  - "developer"
+
+      clouds:
+        - kubernetes:
+            name: "kubernetes"
+            serverUrl: "https://kubernetes.default.svc.cluster.local"
+            namespace: "jenkins"
+            jenkinsUrl: "http://jenkins-svc:8080"
+            jenkinsTunnel: "jenkins-agent-svc:50000"
+            connectTimeout: 5
+            readTimeout: 15
+            maxRequestsPerHostStr: "32"
+            podLabels:
+              - key: "app"
+                value: "jenkins-agent"
+            templates:
+              - name: "default-agent"
+                label: "k8s-agent"
+                namespace: "jenkins"
+                containers:
+                  - name: "jnlp"
+                    image: "jenkins/inbound-agent:latest-jdk17"
+                    resourceRequestCpu: "500m"
+                    resourceRequestMemory: "512Mi"
+                    resourceLimitCpu: "1000m"
+                    resourceLimitMemory: "1Gi"
+              - name: "docker-agent"
+                label: "docker-agent"
+                namespace: "jenkins"
+                serviceAccount: "jenkins"
+                containers:
+                  - name: "jnlp"
+                    image: "jenkins/inbound-agent:latest-jdk17"
+                    resourceRequestCpu: "500m"
+                    resourceRequestMemory: "512Mi"
+                  - name: "docker"
+                    image: "docker:24-dind"
+                    privileged: true
+                    resourceRequestCpu: "500m"
+                    resourceRequestMemory: "512Mi"
+                    resourceLimitCpu: "2000m"
+                    resourceLimitMemory: "2Gi"
+                volumes:
+                  - emptyDirVolume:
+                      memory: false
+                      mountPath: "/var/lib/docker"
+
+    credentials:
+      system:
+        domainCredentials:
+          - credentials:
+              - usernamePassword:
+                  scope: GLOBAL
+                  id: "harbor-credentials"
+                  username: "admin"
+                  password: "${HARBOR_ADMIN_PASSWORD}"
+                  description: "Harbor Registry credentials"
+              - string:
+                  scope: GLOBAL
+                  id: "argocd-token"
+                  secret: "${ARGOCD_AUTH_TOKEN}"
+                  description: "ArgoCD auth token"
+
+    unclassified:
+      location:
+        url: "https://le-jenkins.finspot.in/"
+        adminAddress: "rajkumar.madhu@finspot.in"
+      globalLibraries:
+        libraries: []
+      slackNotifier:
+        baseUrl: ""
+        teamDomain: "finspot"
+
+---
+# Jenkins environment secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jenkins-secrets
+  namespace: jenkins
+  labels:
+    app: jenkins
+    project: linkedeye
+type: Opaque
+stringData:
+  JENKINS_ADMIN_PASSWORD: "Admin@FinSpot2025!"       # Change before production
+  JENKINS_USER_PASSWORD: "User@FinSpot2025!"         # Change before production
+  HARBOR_ADMIN_PASSWORD: "Harbor@FinSpot2025!"       # Change before production
+  ARGOCD_AUTH_TOKEN: "changeme-generate-from-argocd" # Update after ArgoCD deploy

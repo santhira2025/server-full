@@ -1,0 +1,52 @@
+---
+# Harbor core configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: harbor-core-config
+  namespace: harbor
+  labels:
+    app: harbor
+    project: linkedeye
+data:
+  PORT: "8080"
+  DATABASE_TYPE: "postgresql"
+  POSTGRESQL_HOST: "le-postgres-svc.le-postgres.svc.cluster.local"
+  POSTGRESQL_PORT: "5432"
+  POSTGRESQL_DATABASE: "harbordb"
+  POSTGRESQL_SSLMODE: "disable"
+  POSTGRESQL_MAX_IDLE_CONNS: "50"
+  POSTGRESQL_MAX_OPEN_CONNS: "100"
+  REDIS_URL: "redis://harbor-redis-svc:6379/0"
+  REGISTRY_URL: "http://harbor-registry-svc:5000"
+  REGISTRY_CONTROLLER_URL: "http://harbor-registryctl-svc:8080"
+  JOBSERVICE_URL: "http://harbor-jobservice-svc:8080"
+  TOKEN_SERVICE_URL: "http://harbor-core-svc:8080/service/token"
+  CORE_URL: "http://harbor-core-svc:8080"
+  EXTERNAL_URL: "https://le-harbor.finspot.in"
+  EXT_ENDPOINT: "https://le-harbor.finspot.in"
+  LOG_LEVEL: "info"
+  MAX_JOB_WORKERS: "10"
+  CHART_CACHE_DRIVER: "redis"
+  _REDIS_URL_CORE: "redis://harbor-redis-svc:6379/0"
+  _REDIS_URL_REG: "redis://harbor-redis-svc:6379/2"
+  PERMITTED_REGISTRY_TYPES_FOR_PROXY_CACHE: "docker-hub,harbor,azure-acr,aws-ecr,google-gcr,quay,docker-registry,helm-hub"
+
+---
+# Harbor core secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harbor-core-secret
+  namespace: harbor
+  labels:
+    app: harbor
+    project: linkedeye
+type: Opaque
+stringData:
+  HARBOR_ADMIN_PASSWORD: "Harbor@FinSpot2025!"   # Change before production
+  POSTGRESQL_PASSWORD: "Harbor@FinSpot2025!"
+  SECRET_KEY: "not-a-secret-key-change"           # 16-char secret key — CHANGE
+  CSRF_KEY: "not-a-csrf-key-changeme-now-32c"     # 32-char CSRF key — CHANGE
+  CORE_SECRET: "not-core-secret-changeme"
+  JOBSERVICE_SECRET: "not-job-secret-changeme"

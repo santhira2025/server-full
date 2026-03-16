@@ -1,0 +1,35 @@
+---
+# Jenkins home directory storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-pvc
+  namespace: jenkins
+  labels:
+    app: jenkins
+    project: linkedeye
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# PostgreSQL data storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins-postgres-pvc
+  namespace: jenkins
+  labels:
+    app: jenkins-postgres
+    project: linkedeye
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 20Gi

@@ -1,0 +1,130 @@
+---
+# One-time Job — creates default buckets and policies after MinIO starts
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-init
+  namespace: minio
+  labels:
+    app: minio-init
+    project: linkedeye
+spec:
+  ttlSecondsAfterFinished: 300    # Auto-delete job pod after 5 min
+  template:
+    metadata:
+      labels:
+        app: minio-init
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-minio
+          image: busybox:1.35
+          command: ["sh", "-c", "until nc -z minio-api-svc 9000; do echo 'waiting for minio'; sleep 3; done"]
+
+      containers:
+        - name: mc
+          image: quay.io/minio/mc:latest
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_ROOT_USER
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_ROOT_PASSWORD
+            - name: JENKINS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: JENKINS_ACCESS_KEY
+            - name: JENKINS_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: JENKINS_SECRET_KEY
+            - name: VELERO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: VELERO_ACCESS_KEY
+            - name: VELERO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: VELERO_SECRET_KEY
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+
+              echo "Configuring MinIO client..."
+              mc alias set local http://minio-api-svc:9000 \
+                "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}"
+
+              echo "Creating buckets..."
+              mc mb --ignore-existing local/jenkins-artifacts
+              mc mb --ignore-existing local/velero-backups
+              mc mb --ignore-existing local/harbor-registry
+              mc mb --ignore-existing local/grafana-snapshots
+              mc mb --ignore-existing local/linkedeye-logs
+
+              echo "Enabling versioning on velero bucket..."
+              mc version enable local/velero-backups
+
+              echo "Setting lifecycle policy (auto-delete logs after 90 days)..."
+              mc ilm add --expiry-days 90 local/linkedeye-logs
+
+              echo "Creating service accounts..."
+              mc admin user add local "${JENKINS_ACCESS_KEY}" "${JENKINS_SECRET_KEY}"
+              mc admin user add local "${VELERO_ACCESS_KEY}" "${VELERO_SECRET_KEY}"
+
+              echo "Creating policies..."
+              # Jenkins policy — full access to jenkins-artifacts
+              mc admin policy create local jenkins-policy /dev/stdin << 'POLICY'
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": ["s3:*"],
+                    "Resource": [
+                      "arn:aws:s3:::jenkins-artifacts",
+                      "arn:aws:s3:::jenkins-artifacts/*",
+                      "arn:aws:s3:::linkedeye-logs",
+                      "arn:aws:s3:::linkedeye-logs/*"
+                    ]
+                  }
+                ]
+              }
+              POLICY
+
+              # Velero policy — full access to velero-backups
+              mc admin policy create local velero-policy /dev/stdin << 'POLICY'
+              {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Action": ["s3:*"],
+                    "Resource": [
+                      "arn:aws:s3:::velero-backups",
+                      "arn:aws:s3:::velero-backups/*"
+                    ]
+                  }
+                ]
+              }
+              POLICY
+
+              echo "Attaching policies to users..."
+              mc admin policy attach local jenkins-policy --user "${JENKINS_ACCESS_KEY}"
+              mc admin policy attach local velero-policy  --user "${VELERO_ACCESS_KEY}"
+
+              echo "============================================"
+              echo " MinIO init complete!"
+              echo " Buckets created:"
+              mc ls local
+              echo "============================================"

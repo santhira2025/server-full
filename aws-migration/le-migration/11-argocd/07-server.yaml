@@ -1,0 +1,105 @@
+---
+# ArgoCD Server — UI + API + SSO handler
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-server
+  namespace: argocd
+  labels:
+    app: argocd-server
+    project: linkedeye
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: argocd-server
+  template:
+    metadata:
+      labels:
+        app: argocd-server
+        project: linkedeye
+    spec:
+      serviceAccountName: argocd-server
+      containers:
+        - name: argocd-server
+          image: quay.io/argoproj/argocd:v2.10.0
+          command: [argocd-server]
+          args:
+            - --insecure                   # TLS terminated at ALB
+            - --repo-server=argocd-repo-server:8081
+            - --redis=argocd-redis:6379
+            - --staticassets=/shared/app
+            - --loglevel=info
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: grpc
+              containerPort: 8083
+            - name: metrics
+              containerPort: 8085
+          env:
+            - name: ARGOCD_SERVER_INSECURE
+              value: "true"
+            - name: ARGOCD_SERVER_BASEHREF
+              value: "/"
+          volumeMounts:
+            - mountPath: /app/config/ssh
+              name: ssh-known-hosts
+            - mountPath: /app/config/tls
+              name: tls-certs
+            - mountPath: /home/argocd
+              name: plugins-home
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz?full=true
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+      volumes:
+        - name: ssh-known-hosts
+          configMap:
+            name: argocd-ssh-known-hosts-cm
+            optional: true
+        - name: tls-certs
+          configMap:
+            name: argocd-tls-certs-cm
+            optional: true
+        - name: plugins-home
+          emptyDir: {}
+
+---
+# ArgoCD Server Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server
+  namespace: argocd
+  labels:
+    app: argocd-server
+    project: linkedeye
+spec:
+  selector:
+    app: argocd-server
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      nodePort: 30082
+    - name: grpc
+      port: 8083
+      targetPort: 8083
+  type: NodePort

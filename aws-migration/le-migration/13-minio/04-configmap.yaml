@@ -1,0 +1,48 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: minio-config
+  namespace: minio
+  labels:
+    app: minio
+    project: linkedeye
+data:
+  # MinIO site name (shown in console)
+  MINIO_SITE_NAME: "linkedeye-finspot"
+  MINIO_SITE_REGION: "ap-south-1"
+
+  # Console URL (used for CORS and redirects)
+  MINIO_BROWSER_REDIRECT_URL: "https://ls-minio.finspot.in"
+
+  # API endpoint (used by S3 clients)
+  MINIO_SERVER_URL: "https://ls-minio-api.finspot.in"
+
+  # Storage path inside container
+  MINIO_VOLUMES: "/data"
+
+  # Enable versioning globally
+  MINIO_API_SELECT_PARQUET: "off"
+
+  # Prometheus metrics
+  MINIO_PROMETHEUS_AUTH_TYPE: "public"
+  MINIO_PROMETHEUS_URL: "http://prometheus.monitoring.svc.cluster.local:9090"
+
+  # Keycloak SSO (OpenID Connect)
+  MINIO_IDENTITY_OPENID_CONFIG_URL: "https://ls-keycloak.finspot.in/realms/linkedeye/.well-known/openid-configuration"
+  MINIO_IDENTITY_OPENID_CLIENT_ID: "minio"
+  MINIO_IDENTITY_OPENID_DISPLAY_NAME: "Keycloak SSO"
+  MINIO_IDENTITY_OPENID_SCOPES: "openid,profile,email"
+  MINIO_IDENTITY_OPENID_REDIRECT_URI: "https://ls-minio.finspot.in/oauth_callback"
+  MINIO_IDENTITY_OPENID_CLAIM_NAME: "policy"
+
+  # Audit log
+  MINIO_AUDIT_WEBHOOK_ENABLE: "off"
+
+  # Compression
+  MINIO_COMPRESSION_ENABLE: "on"
+  MINIO_COMPRESSION_EXTENSIONS: ".txt,.log,.csv,.json,.xml"
+
+  # Buckets to create on startup
+  # (created by init job — see 05-init-job.yaml)
+  DEFAULT_BUCKETS: "jenkins-artifacts,velero-backups,harbor-registry,grafana-snapshots,linkedeye-logs"

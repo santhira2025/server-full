@@ -1,0 +1,106 @@
+---
+# ArgoCD main config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cm
+  namespace: argocd
+  labels:
+    app: argocd
+    project: linkedeye
+data:
+  # URL shown in ArgoCD UI + used for SSO callbacks
+  url: "https://ls-argocd.finspot.in"
+
+  # Keycloak OIDC SSO
+  oidc.config: |
+    name: Keycloak
+    issuer: https://ls-keycloak.finspot.in/realms/linkedeye
+    clientID: argocd
+    clientSecret: $oidc.keycloak.clientSecret
+    requestedScopes:
+      - openid
+      - profile
+      - email
+      - groups
+    requestedIDTokenClaims:
+      groups:
+        essential: true
+
+  # Harbor container registry
+  repositories: |
+    - url: https://ls-harbor.finspot.in
+      type: helm
+      name: linkedeye-harbor
+
+  # Allow sync of out-of-sync resources
+  resource.customizations: ""
+
+  # Disable terminal access (security)
+  exec.enabled: "false"
+
+  # Status badge (for dashboards)
+  statusbadge.enabled: "true"
+
+  # Application resource tracking
+  application.resourceTrackingMethod: "annotation"
+
+---
+# ArgoCD RBAC config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-rbac-cm
+  namespace: argocd
+  labels:
+    app: argocd
+    project: linkedeye
+data:
+  policy.default: "role:readonly"
+  policy.csv: |
+    # Admins — full access
+    p, role:admin, applications, *, */*, allow
+    p, role:admin, clusters, *, *, allow
+    p, role:admin, repositories, *, *, allow
+    p, role:admin, accounts, *, *, allow
+    p, role:admin, gpgkeys, *, *, allow
+    p, role:admin, logs, *, */*, allow
+
+    # Developers — can sync but not delete clusters
+    p, role:developer, applications, get, */*, allow
+    p, role:developer, applications, sync, */*, allow
+    p, role:developer, applications, update, */*, allow
+    p, role:developer, logs, get, */*, allow
+    p, role:developer, repositories, get, *, allow
+
+    # Read only
+    p, role:readonly, applications, get, */*, allow
+    p, role:readonly, logs, get, */*, allow
+
+    # Group mappings (from Keycloak)
+    g, linkedeye:admin, role:admin
+    g, linkedeye:developer, role:developer
+    g, linkedeye:viewer, role:readonly
+
+  scopes: "[groups, email]"
+
+---
+# ArgoCD secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: argocd-secret
+  namespace: argocd
+  labels:
+    app: argocd
+    project: linkedeye
+type: Opaque
+stringData:
+  # Admin password (bcrypt hash of: ArgoCD@FinSpot2025!)
+  # Regenerate: argocd account bcrypt --password 'ArgoCD@FinSpot2025!'
+  admin.password: "$2a$10$rRyBsGAAe/a1bKSS6fFNdusRTMbFe1WnFAqbDpFQZBPqWuB7GJVKG"
+  admin.passwordMtime: "2025-01-01T00:00:00Z"
+  server.secretkey: "argocd-linkedeye-secret-key-change-this"
+
+  # Keycloak OIDC client secret (update after Keycloak setup)
+  oidc.keycloak.clientSecret: "changeme-get-from-keycloak"

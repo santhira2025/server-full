@@ -1,0 +1,41 @@
+# ============================================================
+# Vault Policies — Apply AFTER vault is initialized
+# Usage: kubectl exec -n vault deployment/vault -- vault policy write ...
+# ============================================================
+
+# These are stored here as reference.
+# Apply via vault CLI after init + unseal.
+
+# POLICY: linkedeye-admin
+# Description: Full access to all LinkedEye secrets
+# ---
+# path "secret/*" {
+#   capabilities = ["create", "read", "update", "delete", "list"]
+# }
+# path "sys/health" {
+#   capabilities = ["read"]
+# }
+
+# POLICY: linkedeye-client-readonly
+# Description: Read-only access to a specific client's secrets
+# Template: replace {CLIENT} with client name
+# ---
+# path "secret/le-{CLIENT}-prod/*" {
+#   capabilities = ["read", "list"]
+# }
+
+# POLICY: jenkins-policy
+# Description: Jenkins CI/CD can read all client secrets
+# ---
+# path "secret/le-*" {
+#   capabilities = ["read", "list"]
+# }
+
+# SECRET PATH CONVENTION (per CLAUDE.md):
+#   secret/le-{client}-prod/*
+#
+# Examples:
+#   secret/le-indmoney-prod/db-password
+#   secret/le-neo-wealth-prod/api-key
+#   secret/le-dx-prod/smtp-credentials
+#   secret/le-dev/test-secrets

@@ -1,0 +1,89 @@
+---
+# Redis PVC (Harbor uses Redis for caching/job queue)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: harbor-redis-pvc
+  namespace: harbor
+  labels:
+    app: harbor-redis
+    project: linkedeye
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# Redis Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: harbor-redis
+  namespace: harbor
+  labels:
+    app: harbor-redis
+    project: linkedeye
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: harbor-redis
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: harbor-redis
+        project: linkedeye
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command: ["redis-server", "--appendonly", "yes"]
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: harbor-redis-pvc
+
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: harbor-redis-svc
+  namespace: harbor
+  labels:
+    app: harbor-redis
+    project: linkedeye
+spec:
+  selector:
+    app: harbor-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+  type: ClusterIP

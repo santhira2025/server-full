@@ -1,0 +1,65 @@
+---
+# Vault server configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+  namespace: vault
+  labels:
+    app: vault
+    project: linkedeye
+data:
+  vault.hcl: |
+    # ── Storage Backend — PostgreSQL (shared le-postgres) ──────
+    storage "postgresql" {
+      connection_url = "postgres://vault:Vault@FinSpot2025!@le-postgres-svc.le-postgres.svc.cluster.local:5432/vaultdb?sslmode=disable"
+      table          = "vault_kv_store"
+      ha_enabled     = "false"
+    }
+
+    # ── Listener ───────────────────────────────────────────────
+    listener "tcp" {
+      address       = "0.0.0.0:8200"
+      tls_disable   = "true"    # TLS terminated at ALB
+
+      # Allow health checks from ALB
+      telemetry {
+        unauthenticated_metrics_access = true
+      }
+    }
+
+    # ── API Address ────────────────────────────────────────────
+    api_addr     = "https://ls-vault.finspot.in"
+    cluster_addr = "https://vault:8201"
+
+    # ── UI ─────────────────────────────────────────────────────
+    ui = true
+
+    # ── Telemetry ──────────────────────────────────────────────
+    telemetry {
+      prometheus_retention_time = "30s"
+      disable_hostname          = true
+    }
+
+    # ── Log ────────────────────────────────────────────────────
+    log_level  = "Info"
+    log_format = "json"
+
+---
+# Vault init secret (filled after first init)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-init-secret
+  namespace: vault
+  labels:
+    app: vault
+    project: linkedeye
+type: Opaque
+stringData:
+  # These are filled AFTER running: vault operator init
+  # Keep these secure — loss = permanent data loss
+  VAULT_UNSEAL_KEY_1: "FILL_AFTER_INIT"
+  VAULT_UNSEAL_KEY_2: "FILL_AFTER_INIT"
+  VAULT_UNSEAL_KEY_3: "FILL_AFTER_INIT"
+  VAULT_ROOT_TOKEN: "FILL_AFTER_INIT"

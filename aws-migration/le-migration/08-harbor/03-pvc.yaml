@@ -1,0 +1,35 @@
+---
+# Harbor Registry storage (stores container images)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: harbor-registry-pvc
+  namespace: harbor
+  labels:
+    app: harbor-registry
+    project: linkedeye
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 200Gi    # Adjust based on expected image storage
+
+---
+# Harbor Jobservice storage (job logs)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: harbor-jobservice-pvc
+  namespace: harbor
+  labels:
+    app: harbor-jobservice
+    project: linkedeye
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 10Gi

@@ -1,0 +1,60 @@
+---
+# Allow Keycloak ingress from ALB + egress to PostgreSQL
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-network-policy
+  namespace: keycloak
+  labels:
+    app: keycloak
+    project: linkedeye
+spec:
+  podSelector:
+    matchLabels:
+      app: keycloak
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - ports:
+        - port: 8080
+        - port: 9000
+  egress:
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app: keycloak-postgres
+      ports:
+        - port: 5432
+    - ports:
+        - port: 443
+        - port: 80
+
+---
+# Only Keycloak can reach PostgreSQL
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-postgres-network-policy
+  namespace: keycloak
+  labels:
+    app: keycloak-postgres
+    project: linkedeye
+spec:
+  podSelector:
+    matchLabels:
+      app: keycloak-postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: keycloak
+      ports:
+        - port: 5432

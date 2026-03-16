@@ -1,0 +1,90 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+  labels:
+    app: argocd-repo-server
+    project: linkedeye
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: argocd-repo-server
+  template:
+    metadata:
+      labels:
+        app: argocd-repo-server
+        project: linkedeye
+    spec:
+      serviceAccountName: argocd-repo-server
+      automountServiceAccountToken: false
+      containers:
+        - name: argocd-repo-server
+          image: quay.io/argoproj/argocd:v2.10.0
+          command: [argocd-repo-server]
+          ports:
+            - containerPort: 8081   # repo server gRPC
+            - containerPort: 8084   # metrics
+          env:
+            - name: REDIS_SERVER_ADDRESS
+              value: argocd-redis:6379
+            - name: ARGOCD_RECONCILIATION_TIMEOUT
+              value: "180s"
+          volumeMounts:
+            - mountPath: /app/config/ssh
+              name: ssh-known-hosts
+            - mountPath: /app/config/tls
+              name: tls-certs
+            - mountPath: /tmp
+              name: tmp
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          livenessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 10
+      volumes:
+        - name: ssh-known-hosts
+          configMap:
+            name: argocd-ssh-known-hosts-cm
+            optional: true
+        - name: tls-certs
+          configMap:
+            name: argocd-tls-certs-cm
+            optional: true
+        - name: tmp
+          emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+  labels:
+    app: argocd-repo-server
+    project: linkedeye
+spec:
+  selector:
+    app: argocd-repo-server
+  ports:
+    - name: server
+      port: 8081
+      targetPort: 8081
+    - name: metrics
+      port: 8084
+      targetPort: 8084
+  type: ClusterIP

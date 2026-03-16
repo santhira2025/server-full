@@ -1,0 +1,18 @@
+---
+# MinIO data storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: minio-data-pvc
+  namespace: minio
+  labels:
+    app: minio
+    project: linkedeye
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2
+  resources:
+    requests:
+      storage: 500Gi    # Adjust based on expected usage
+                        # Stores: Jenkins artifacts, K8s backups, Harbor images, logs

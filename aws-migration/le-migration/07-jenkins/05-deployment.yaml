@@ -1,0 +1,166 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: jenkins
+  labels:
+    app: jenkins
+    project: linkedeye
+    version: lts
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jenkins
+  strategy:
+    type: Recreate   # Jenkins home dir is single-writer
+  template:
+    metadata:
+      labels:
+        app: jenkins
+        project: linkedeye
+    spec:
+      serviceAccountName: jenkins
+
+      # Run as jenkins user (uid 1000)
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+
+      initContainers:
+        # Wait for PostgreSQL to be ready
+        - name: wait-for-postgres
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for PostgreSQL..."
+              until nc -z jenkins-postgres-svc 5432; do
+                echo "PostgreSQL not ready — retrying in 3s"
+                sleep 3
+              done
+              echo "PostgreSQL is ready."
+
+        # Fix permissions on Jenkins home
+        - name: fix-permissions
+          image: busybox:1.35
+          command: ["sh", "-c", "chown -R 1000:1000 /var/jenkins_home"]
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - name: jenkins-home
+              mountPath: /var/jenkins_home
+
+      containers:
+        - name: jenkins
+          image: jenkins/jenkins:lts-jdk17
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: agent
+              containerPort: 50000
+
+          env:
+            # JCasC config location
+            - name: CASC_JENKINS_CONFIG
+              value: /var/jenkins_casc/jenkins.yaml
+
+            # Disable setup wizard (JCasC handles it)
+            - name: JAVA_OPTS
+              value: >-
+                -Djenkins.install.runSetupWizard=false
+                -Dhudson.model.DirectoryBrowserSupport.CSP=
+                -Xmx2048m
+                -Xms512m
+
+            # PostgreSQL connection (available to pipelines)
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: le-jenkins-db-secret
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: le-jenkins-db-secret
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: le-jenkins-db-secret
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: le-jenkins-db-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: le-jenkins-db-secret
+                  key: POSTGRES_PASSWORD
+
+            # Jenkins credentials (injected into JCasC)
+            - name: JENKINS_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-secrets
+                  key: JENKINS_ADMIN_PASSWORD
+            - name: JENKINS_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-secrets
+                  key: JENKINS_USER_PASSWORD
+            - name: HARBOR_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-secrets
+                  key: HARBOR_ADMIN_PASSWORD
+            - name: ARGOCD_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: jenkins-secrets
+                  key: ARGOCD_AUTH_TOKEN
+
+          volumeMounts:
+            - name: jenkins-home
+              mountPath: /var/jenkins_home
+            - name: jenkins-casc
+              mountPath: /var/jenkins_casc
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 3Gi
+
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            failureThreshold: 5
+            timeoutSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 5
+            timeoutSeconds: 10
+
+      volumes:
+        - name: jenkins-home
+          persistentVolumeClaim:
+            claimName: jenkins-pvc
+        - name: jenkins-casc
+          configMap:
+            name: jenkins-casc-config

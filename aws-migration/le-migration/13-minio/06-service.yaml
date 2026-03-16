@@ -1,0 +1,37 @@
+---
+# MinIO S3 API service
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-api-svc
+  namespace: minio
+  labels:
+    app: minio
+    project: linkedeye
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: api
+      port: 9000
+      targetPort: 9000
+  type: NodePort
+
+---
+# MinIO Web Console service
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-console-svc
+  namespace: minio
+  labels:
+    app: minio
+    project: linkedeye
+spec:
+  selector:
+    app: minio
+  ports:
+    - name: console
+      port: 9001
+      targetPort: 9001
+  type: NodePort
