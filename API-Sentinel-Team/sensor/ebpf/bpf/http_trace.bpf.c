@@ -68,6 +68,7 @@ struct {
     __uint(max_entries, 1 << 27);
 } events SEC(".maps");
 
+
 struct close_event {
     __u64 ts_ns;
     __u32 pid;
@@ -389,7 +390,7 @@ static __always_inline int emit_event(struct pt_regs *ctx, const void *buf, __u3
     __u32 capped = read_len & (MAX_DATA - 1);
     e->data_len = capped;
     if (capped > 0)
-        bpf_probe_read_user(e->data, capped, buf);
+        bpf_probe_read_user(e->data, capped & (MAX_DATA - 1), buf);
     bpf_ringbuf_submit(e, 0);
     return 0;
 }

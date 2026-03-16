@@ -530,8 +530,13 @@ pub fn find_go_tls_offsets(binary_path: &str) -> Option<GoTlsOffsets> {
 
     let arch = detect_elf_arch(&elf_file);
 
-    let write_rets = find_ret_offsets(&data, write_offset, write_size, &arch).ok()?;
-    let read_rets  = find_ret_offsets(&data, read_offset,  read_size,  &arch).ok()?;
+    // Symbol values are virtual addresses; convert to file offsets for disassembly and uprobe attachment.
+    let write_file_off = va_to_file_offset(&elf_file, write_offset).unwrap_or(write_offset);
+    let read_file_off  = va_to_file_offset(&elf_file, read_offset).unwrap_or(read_offset);
+
+
+    let write_rets = find_ret_offsets(&data, write_file_off, write_size, &arch).ok()?;
+    let read_rets  = find_ret_offsets(&data, read_file_off,  read_size,  &arch).ok()?;
 
     if write_rets.is_empty() || read_rets.is_empty() {
         eprintln!("WARN: No RET instructions found in Go TLS for {}", binary_path);
@@ -540,7 +545,10 @@ pub fn find_go_tls_offsets(binary_path: &str) -> Option<GoTlsOffsets> {
 
     Some(GoTlsOffsets {
         binary_path: binary_path.to_string(),
-        write_offset, write_rets, read_offset, read_rets,
+        write_offset: write_file_off,
+        write_rets,
+        read_offset: read_file_off,
+        read_rets,
         go_version, goid_offset,
     })
 }
@@ -586,6 +594,20 @@ fn detect_elf_arch(elf_file: &elf::ElfBytes<elf::endian::AnyEndian>) -> String {
         elf::abi::EM_AARCH64 => "aarch64".to_string(),
         other                => format!("unknown_{}", other),
     }
+}
+
+/// Convert an ELF virtual address to a file offset using PT_LOAD segments.
+fn va_to_file_offset(elf_file: &elf::ElfBytes<elf::endian::AnyEndian>, va: usize) -> Option<usize> {
+    let segments = elf_file.segments()?;
+    for phdr in segments.iter() {
+        if phdr.p_type != elf::abi::PT_LOAD { continue; }
+        let seg_start = phdr.p_vaddr as usize;
+        let seg_end   = seg_start + phdr.p_filesz as usize;
+        if va >= seg_start && va < seg_end {
+            return Some(va - seg_start + phdr.p_offset as usize);
+        }
+    }
+    None
 }
 
 fn find_ret_offsets(data: &[u8], func_offset: usize, func_size: usize, arch: &str)
@@ -636,16 +658,26 @@ fn find_ret_offsets(data: &[u8], func_offset: usize, func_size: usize, arch: &st
 }
 
 fn parse_go_version_from_binary(data: &[u8]) -> Option<String> {
-    let magic = b"\xff Go buildinfo:";
+    // Go 1.18+ build info magic — NOTE: "buildinf" (not "buildinfo")
+    let magic = b"\xff Go buildinf:";
     if let Some(pos) = data.windows(magic.len()).position(|w| w == magic) {
-        let start = pos + magic.len();
-        let end   = (start + 20).min(data.len());
-        if let Ok(s) = std::str::from_utf8(&data[start..end]) {
-            return Some(s.trim_matches(|c: char| !c.is_alphanumeric() && c != '.').to_string());
+        // After magic (14B) + 2B header: scan forward for the embedded "go1." version string
+        let scan_start = pos + magic.len() + 2;
+        let scan_end = (scan_start + 32).min(data.len());
+        for i in scan_start..scan_end.saturating_sub(4) {
+            if &data[i..i+4] == b"go1." {
+                let end = (i + 16).min(data.len());
+                if let Ok(s) = std::str::from_utf8(&data[i..end]) {
+                    let ver: String = s.chars().take_while(|c| c.is_alphanumeric() || *c == '.').collect();
+                    if ver.len() > 3 { return Some(ver); }
+                }
+            }
         }
+        // Fallback: return a placeholder so we still recognise it as a Go binary
+        return Some("go1".to_string());
     }
-    // Fallback: search for "go1." in first 2MB
-    let search_end = data.len().min(2 * 1024 * 1024);
+    // Fallback: search for "go1." anywhere in the binary (no size limit)
+    let search_end = data.len();
     for i in 0..search_end.saturating_sub(4) {
         if &data[i..i+4] == b"go1." {
             let end = (i + 12).min(data.len());
@@ -664,12 +696,22 @@ fn goid_offset_for_version(version: &str) -> u64 {
 
 fn detect_go_binary(pid: i32) -> Option<String> {
     if pid <= 0 { return None; }
-    let maps = fs::read_to_string(format!("/proc/{}/maps", pid)).ok()?;
+    let maps_path = format!("/proc/{}/maps", pid);
+    let maps = match fs::read_to_string(&maps_path) {
+        Ok(m) => m,
+        Err(e) => { eprintln!("[sensor] Go TLS: cannot read {}: {}", maps_path, e); return None; }
+    };
     for line in maps.lines() {
         if !line.contains("r-xp") { continue; }
-        let path = line.split_whitespace().last()?;
+        let path = match line.split_whitespace().last() {
+            Some(p) => p,
+            None => { eprintln!("[sensor] Go TLS: r-xp line has no last field: {:?}", line); continue; }
+        };
         if path.starts_with('/') {
-            let data = fs::read(path).ok()?;
+            let data = match fs::read(path) {
+                Ok(d) => d,
+                Err(e) => { eprintln!("[sensor] Go TLS: cannot read {}: {}", path, e); continue; }
+            };
             if parse_go_version_from_binary(&data).is_some() {
                 return Some(path.to_string());
             }
@@ -705,9 +747,9 @@ fn attach_at_offset(
 ) -> anyhow::Result<()> {
     let prog = obj.prog_mut(prog_name)
         .ok_or_else(|| anyhow::anyhow!("missing BPF program {}", prog_name))?;
-    let mut opts = UprobeOpts::default();
-    opts.retprobe = retprobe;
-    let link = prog.attach_uprobe_with_opts(pid, binary, offset, opts)
+    // Use attach_uprobe (not attach_uprobe_with_opts) so that func_name is NULL and
+    // libbpf uses func_offset directly without attempting an ELF symbol lookup.
+    let link = prog.attach_uprobe(retprobe, pid, binary, offset)
         .map_err(|e| anyhow::anyhow!("attach {} at offset {:#x}: {}", prog_name, offset, e))?;
     links.push(link);
     Ok(())
@@ -1572,6 +1614,9 @@ impl StreamState {
                         ts_ms,
                         net_ctx: net_ctx.clone().unwrap_or_default(),
                     });
+                    // Clear buffer after decoding request headers so the HPACK
+                    // decoder state is not corrupted when the response arrives.
+                    conn_state.buffer.clear();
                 }
             } else if let Some(status) = headers.get(":status") {
                 if conn_state.last_status.as_deref() == Some(status)
@@ -2198,7 +2243,7 @@ fn attach_tls_uprobes(
             if attach_symbol(obj, "ssl_read_exit",   lib, "SSL_read",  true,  pid, links).is_ok() { attached += 1; }
         }
     }
-    if attached == 0 {
+    if attached == 0 && !args.go_tls {
         anyhow::bail!("no TLS uprobes attached; verify --tls-libs or --discover-libs and symbols");
     }
     Ok(())
@@ -2285,14 +2330,29 @@ async fn main() -> Result<()> {
     attach_tls_uprobes(&mut obj, &args, &tls_libs, &mut links)?;
     attach_kernel_probes(&mut obj, &mut links)?;
 
+    // Initialize sampling_config map — BPF arrays are zero-initialized; rate=0
+    // means "filter everything", so we must set the actual rates before polling.
+    if let Some(map) = obj.map_mut("sampling_config") {
+        let key: u32 = 0;
+        // [default_rate, health_rate] packed as two u8 in 4 bytes (little-endian)
+        let cfg_bytes: [u8; 4] = [args.sample_default, args.sample_health, 0, 0];
+        let _ = map.update(&key.to_ne_bytes(), &cfg_bytes, libbpf_rs::MapFlags::ANY);
+    }
+
     // Go TLS probes
     if args.go_tls {
+        eprintln!("[sensor] Go TLS: scanning pid={}", args.pid);
         if let Some(go_bin) = detect_go_binary(args.pid) {
+            eprintln!("[sensor] Go TLS: detected binary {}", go_bin);
             if let Some(offsets) = find_go_tls_offsets(&go_bin) {
                 eprintln!("[sensor] attaching Go TLS probes for {} ({})", go_bin, offsets.go_version);
                 attach_go_tls_probes(&mut obj, &offsets, &mut links, args.pid);
                 PROTO_GO_TLS.fetch_add(0, Ordering::Relaxed); // init
+            } else {
+                eprintln!("[sensor] Go TLS: no offsets found in {}", go_bin);
             }
+        } else {
+            eprintln!("[sensor] Go TLS: no Go binary found for pid={}", args.pid);
         }
         // Check for static BoringSSL in the target binary
         if args.pid > 0 {
@@ -2309,6 +2369,10 @@ async fn main() -> Result<()> {
                 }
             }
         }
+    }
+    // Final guard: if neither libssl nor Go TLS attached anything, bail.
+    if args.go_tls && links.is_empty() {
+        anyhow::bail!("no probes attached; --go-tls enabled but no TLS library or Go binary found");
     }
 
     let node_name = env::var("NODE_NAME")
