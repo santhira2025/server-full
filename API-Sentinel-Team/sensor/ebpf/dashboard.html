@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APISentinel Sensor — Live Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0f1117; color: #e0e0e0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+  .header {
+    background: linear-gradient(135deg, #1a1d29, #252836);
+    padding: 20px 32px;
+    border-bottom: 1px solid #2d3148;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header h1 span { color: #6c5ce7; }
+  .status-badge {
+    padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  }
+  .status-ok { background: #00b89420; color: #00b894; border: 1px solid #00b89450; }
+  .status-err { background: #ff636320; color: #ff6363; border: 1px solid #ff636350; }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px; padding: 24px 32px;
+  }
+  .card {
+    background: #1a1d29; border: 1px solid #2d3148; border-radius: 12px;
+    padding: 20px; text-align: center; transition: border-color 0.3s;
+  }
+  .card:hover { border-color: #6c5ce7; }
+  .card .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .card .value { font-size: 36px; font-weight: 700; }
+  .card .sub { font-size: 11px; color: #666; margin-top: 4px; }
+  .val-green { color: #00b894; }
+  .val-blue  { color: #74b9ff; }
+  .val-purple { color: #a29bfe; }
+  .val-yellow { color: #ffeaa7; }
+  .val-red   { color: #ff6363; }
+  .val-cyan  { color: #81ecec; }
+
+  .charts {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    padding: 0 32px 24px;
+  }
+  .chart-box {
+    background: #1a1d29; border: 1px solid #2d3148; border-radius: 12px;
+    padding: 20px;
+  }
+  .chart-box h3 { font-size: 14px; color: #aaa; margin-bottom: 12px; }
+  .chart-box canvas { max-height: 250px; }
+
+  .protocol-section { padding: 0 32px 24px; }
+  .protocol-section h3 { font-size: 14px; color: #aaa; margin-bottom: 12px; }
+  .proto-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .proto-card {
+    background: #1a1d29; border: 1px solid #2d3148; border-radius: 10px;
+    padding: 16px; text-align: center;
+  }
+  .proto-card .proto-name { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .proto-card .proto-val  { font-size: 28px; font-weight: 700; color: #74b9ff; margin-top: 4px; }
+  .proto-card .proto-bar  {
+    height: 4px; border-radius: 2px; background: #2d3148; margin-top: 8px; overflow: hidden;
+  }
+  .proto-card .proto-bar-fill { height: 100%; background: #6c5ce7; border-radius: 2px; transition: width 0.5s; }
+
+  .footer {
+    text-align: center; padding: 16px; color: #444; font-size: 12px;
+    border-top: 1px solid #2d3148;
+  }
+
+  @media (max-width: 768px) {
+    .charts { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>API</span>Sentinel Sensor</h1>
+  <div>
+    <span class="status-badge status-ok" id="health-badge">Healthy</span>
+    <span style="margin-left:8px; font-size:12px; color:#666;" id="last-update">--</span>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="label">Events Captured</div>
+    <div class="value val-blue" id="m-captured">0</div>
+    <div class="sub">Raw TLS read/write events from kernel</div>
+  </div>
+  <div class="card">
+    <div class="label">Events Sent</div>
+    <div class="value val-green" id="m-sent">0</div>
+    <div class="sub">Parsed API events sent to ingest</div>
+  </div>
+  <div class="card">
+    <div class="label">Events Dropped</div>
+    <div class="value val-red" id="m-dropped">0</div>
+    <div class="sub">Dropped due to memory pressure</div>
+  </div>
+  <div class="card">
+    <div class="label">Send Errors</div>
+    <div class="value val-yellow" id="m-errors">0</div>
+    <div class="sub">Failed ingest API calls</div>
+  </div>
+  <div class="card">
+    <div class="label">Active Connections</div>
+    <div class="value val-cyan" id="m-active">0</div>
+    <div class="sub">Currently tracked TLS sessions</div>
+  </div>
+  <div class="card">
+    <div class="label">Ring Buffer Drops</div>
+    <div class="value val-red" id="m-ringbuf">0</div>
+    <div class="sub">Kernel ring buffer overflows</div>
+  </div>
+  <div class="card">
+    <div class="label">Backpressure</div>
+    <div class="value val-purple" id="m-watermark">0%</div>
+    <div class="sub">Channel watermark (80% = warning)</div>
+  </div>
+  <div class="card">
+    <div class="label">Uptime</div>
+    <div class="value val-green" id="m-uptime">0s</div>
+    <div class="sub">Sensor running time</div>
+  </div>
+</div>
+
+<div class="charts">
+  <div class="chart-box">
+    <h3>Events Over Time (captured vs sent)</h3>
+    <canvas id="chart-events"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>Drop Rate & Backpressure</h3>
+    <canvas id="chart-health"></canvas>
+  </div>
+</div>
+
+<div class="protocol-section">
+  <h3>Events by Protocol</h3>
+  <div class="proto-grid" id="proto-grid"></div>
+</div>
+
+<div class="footer">
+  APISentinel eBPF Sensor Dashboard — Refreshes every 2 seconds — Prometheus metrics at <span id="metrics-url">/api/metrics</span>
+</div>
+
+<script>
+const MAX_POINTS = 60;
+const labels = [];
+const capturedData = [];
+const sentData = [];
+const dropRateData = [];
+const watermarkData = [];
+
+const ctxEvents = document.getElementById('chart-events').getContext('2d');
+const chartEvents = new Chart(ctxEvents, {
+  type: 'line',
+  data: {
+    labels: labels,
+    datasets: [
+      { label: 'Captured', data: capturedData, borderColor: '#74b9ff', backgroundColor: '#74b9ff20', fill: true, tension: 0.3, pointRadius: 0 },
+      { label: 'Sent', data: sentData, borderColor: '#00b894', backgroundColor: '#00b89420', fill: true, tension: 0.3, pointRadius: 0 }
+    ]
+  },
+  options: {
+    responsive: true,
+    animation: { duration: 300 },
+    plugins: { legend: { labels: { color: '#888' } } },
+    scales: {
+      x: { ticks: { color: '#555', maxTicksLimit: 10 }, grid: { color: '#1e2130' } },
+      y: { ticks: { color: '#555' }, grid: { color: '#1e2130' }, beginAtZero: true }
+    }
+  }
+});
+
+const ctxHealth = document.getElementById('chart-health').getContext('2d');
+const chartHealth = new Chart(ctxHealth, {
+  type: 'line',
+  data: {
+    labels: labels,
+    datasets: [
+      { label: 'Drop Rate (bps)', data: dropRateData, borderColor: '#ff6363', backgroundColor: '#ff636320', fill: true, tension: 0.3, pointRadius: 0 },
+      { label: 'Backpressure %', data: watermarkData, borderColor: '#a29bfe', backgroundColor: '#a29bfe20', fill: true, tension: 0.3, pointRadius: 0 }
+    ]
+  },
+  options: {
+    responsive: true,
+    animation: { duration: 300 },
+    plugins: { legend: { labels: { color: '#888' } } },
+    scales: {
+      x: { ticks: { color: '#555', maxTicksLimit: 10 }, grid: { color: '#1e2130' } },
+      y: { ticks: { color: '#555' }, grid: { color: '#1e2130' }, beginAtZero: true }
+    }
+  }
+});
+
+const protocols = ['http1', 'http2', 'grpc', 'websocket', 'mcp', 'go_tls'];
+const protoColors = { http1: '#74b9ff', http2: '#6c5ce7', grpc: '#00b894', websocket: '#ffeaa7', mcp: '#fd79a8', go_tls: '#81ecec' };
+
+function renderProtocols(data) {
+  const grid = document.getElementById('proto-grid');
+  const total = Object.values(data).reduce((a, b) => a + b, 0) || 1;
+  grid.innerHTML = protocols.map(p => {
+    const v = data[p] || 0;
+    const pct = (v / total * 100).toFixed(0);
+    return `<div class="proto-card">
+      <div class="proto-name">${p.replace('_', ' ')}</div>
+      <div class="proto-val" style="color:${protoColors[p]}">${v}</div>
+      <div class="proto-bar"><div class="proto-bar-fill" style="width:${pct}%;background:${protoColors[p]}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function parseMetrics(text) {
+  const m = {};
+  text.split('\n').forEach(line => {
+    if (line.startsWith('#') || !line.trim()) return;
+    const match = line.match(/^(\S+?)(?:\{([^}]*)\})?\s+(\S+)/);
+    if (match) {
+      const key = match[1];
+      const labels = match[2] || '';
+      const val = parseFloat(match[3]);
+      if (labels) {
+        if (!m[key]) m[key] = {};
+        const lm = labels.match(/(\w+)="([^"]+)"/);
+        if (lm) m[key][lm[2]] = val;
+      } else {
+        m[key] = val;
+      }
+    }
+  });
+  return m;
+}
+
+function formatUptime(s) {
+  if (s < 60) return Math.floor(s) + 's';
+  if (s < 3600) return Math.floor(s / 60) + 'm ' + Math.floor(s % 60) + 's';
+  return Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+}
+
+async function refresh() {
+  try {
+    const resp = await fetch('/api/metrics');
+    const text = await resp.text();
+    const m = parseMetrics(text);
+
+    const captured = m['apisec_events_captured_total'] || 0;
+    const sent     = m['apisec_events_sent_total'] || 0;
+    const dropped  = m['apisec_events_dropped_total'] || 0;
+    const errors   = m['apisec_send_errors_total'] || 0;
+    const active   = m['apisec_active_connections'] || 0;
+    const ringbuf  = m['apisec_ringbuf_drops_total'] || 0;
+    const dropRate = m['apisec_drop_rate_bps'] || 0;
+    const watermark = m['apisec_channel_watermark_pct'] || 0;
+    const uptime   = m['apisec_uptime_seconds'] || 0;
+    const protos   = m['apisec_protocol_events_total'] || {};
+
+    document.getElementById('m-captured').textContent = captured;
+    document.getElementById('m-sent').textContent = sent;
+    document.getElementById('m-dropped').textContent = dropped;
+    document.getElementById('m-errors').textContent = errors;
+    document.getElementById('m-active').textContent = active;
+    document.getElementById('m-ringbuf').textContent = ringbuf;
+    document.getElementById('m-watermark').textContent = watermark + '%';
+    document.getElementById('m-uptime').textContent = formatUptime(uptime);
+
+    const badge = document.getElementById('health-badge');
+    if (dropped === 0 && errors === 0 && ringbuf === 0) {
+      badge.className = 'status-badge status-ok'; badge.textContent = 'Healthy';
+    } else {
+      badge.className = 'status-badge status-err'; badge.textContent = 'Degraded';
+    }
+
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('last-update').textContent = 'Updated ' + now;
+
+    labels.push(now);
+    capturedData.push(captured);
+    sentData.push(sent);
+    dropRateData.push(dropRate);
+    watermarkData.push(watermark);
+
+    if (labels.length > MAX_POINTS) {
+      labels.shift(); capturedData.shift(); sentData.shift();
+      dropRateData.shift(); watermarkData.shift();
+    }
+
+    chartEvents.update();
+    chartHealth.update();
+    renderProtocols(protos);
+  } catch (e) {
+    document.getElementById('health-badge').className = 'status-badge status-err';
+    document.getElementById('health-badge').textContent = 'Offline';
+  }
+}
+
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

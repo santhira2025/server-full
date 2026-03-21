@@ -70,7 +70,7 @@ func main() {
 	}
 
 	server := &http.Server{
-		Addr:    ":8443",
+		Addr:    ":9443",
 		Handler: mux,
 		TLSConfig: &tls.Config{
 			Certificates: []tls.Certificate{cert},
@@ -78,6 +78,6 @@ func main() {
 		},
 	}
 
-	log.Println("Go TLS server listening on :8443")
+	log.Println("Go TLS server listening on :9443")
 	log.Fatal(server.ListenAndServeTLS("", ""))
 }

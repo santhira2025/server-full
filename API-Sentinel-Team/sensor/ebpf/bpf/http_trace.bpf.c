@@ -82,35 +82,35 @@ struct {
 } close_events SEC(".maps");
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);   // pid_tgid
     __type(value, struct read_args);
 } ssl_read_args SEC(".maps");
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);   // pid_tgid
     __type(value, struct write_args);
 } ssl_write_args SEC(".maps");
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);   // ssl_ptr
     __type(value, __u64); // pid_tgid
 } ssl_ptr_to_pid SEC(".maps");
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);   // pid_tgid
     __type(value, struct read_ex_args);
 } ssl_read_ex_args SEC(".maps");
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);   // pid_tgid
     __type(value, struct write_ex_args);
@@ -118,14 +118,14 @@ struct {
 
 // Separate GnuTLS maps to avoid key collision with OpenSSL maps (BUG-3)
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);   // pid_tgid
     __type(value, struct write_args);
 } gnutls_write_args SEC(".maps");
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);   // pid_tgid
     __type(value, struct read_args);
@@ -143,7 +143,7 @@ struct conn_info {
 };
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 65536);
     __type(key, __u64); // pid_tgid
     __type(value, struct conn_info);
@@ -151,7 +151,7 @@ struct {
 
 // ssl_ptr -> conn_info: populated by SSL_set_fd uprobe for async-runtime accuracy.
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);  // ssl_ptr
     __type(value, struct conn_info);
@@ -173,14 +173,14 @@ struct go_read_args {
 };
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);   // goroutine_id or pid_tgid fallback
     __type(value, struct go_write_args);
 } go_tls_write_args SEC(".maps");
 
 struct {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __uint(max_entries, 8192);
     __type(key, __u64);   // goroutine_id or pid_tgid fallback
     __type(value, struct go_read_args);
@@ -278,27 +278,23 @@ static __always_inline bool should_sample_out(const char *data, __u32 len)
     const char *path = data + path_start;
     __u32 path_len   = len - path_start;
 
-    // Auth/security paths: always capture
-    if (path_len >= 4) {
-        if (__builtin_memcmp(path, "/auth",  5) == 0 ||
-            __builtin_memcmp(path, "/login", 6) == 0 ||
-            __builtin_memcmp(path, "/token", 6) == 0 ||
-            __builtin_memcmp(path, "/oauth", 6) == 0 ||
-            __builtin_memcmp(path, "/admin", 6) == 0 ||
-            __builtin_memcmp(path, "/mcp",   4) == 0) {
-            return false; // do NOT sample out
-        }
+    // Auth/security paths: always capture (each comparison guarded by its length)
+    if ((path_len >= 5 && __builtin_memcmp(path, "/auth",  5) == 0) ||
+        (path_len >= 6 && __builtin_memcmp(path, "/login", 6) == 0) ||
+        (path_len >= 6 && __builtin_memcmp(path, "/token", 6) == 0) ||
+        (path_len >= 6 && __builtin_memcmp(path, "/oauth", 6) == 0) ||
+        (path_len >= 6 && __builtin_memcmp(path, "/admin", 6) == 0) ||
+        (path_len >= 4 && __builtin_memcmp(path, "/mcp",   4) == 0)) {
+        return false; // do NOT sample out
     }
 
     // Health/metrics: apply health rate
     __u8 rate = cfg->default_rate;
-    if (path_len >= 6) {
-        if (__builtin_memcmp(path, "/health",  7) == 0 ||
-            __builtin_memcmp(path, "/readyz",  7) == 0 ||
-            __builtin_memcmp(path, "/livez",   6) == 0 ||
-            __builtin_memcmp(path, "/metrics", 8) == 0) {
-            rate = cfg->health_rate;
-        }
+    if ((path_len >= 7 && __builtin_memcmp(path, "/health",  7) == 0) ||
+        (path_len >= 7 && __builtin_memcmp(path, "/readyz",  7) == 0) ||
+        (path_len >= 6 && __builtin_memcmp(path, "/livez",   6) == 0) ||
+        (path_len >= 8 && __builtin_memcmp(path, "/metrics", 8) == 0)) {
+        rate = cfg->health_rate;
     }
 
     if (rate >= 100) return false;
@@ -326,7 +322,11 @@ static __always_inline int emit_event(struct pt_regs *ctx, const void *buf, __u3
         }
     }
 
-    e = bpf_ringbuf_reserve(&events, sizeof(*e), 0);
+    // Variable-length event: reserve only header + actual data (aligned to 8 bytes)
+    __u32 header_size = offsetof(struct tls_event, data);
+    __u32 total_size = header_size + read_len;
+    total_size = (total_size + 7) & ~7;
+    e = bpf_ringbuf_reserve(&events, total_size, 0);
     if (!e) {
         return 0;
     }
@@ -381,16 +381,15 @@ static __always_inline int emit_event(struct pt_regs *ctx, const void *buf, __u3
         }
     }
 
-    /* Re-assert bound immediately before bpf_probe_read_user so the verifier
-     * sees a fresh register with range 0..MAX_DATA-1.  The compiler may spill
-     * read_len to a stack slot (losing the ternary-clamp range) before the
-     * long sampling block; '&= (MAX_DATA-1)' is the verifier-recommended fix
-     * ("use 'var &= const'").  SSL records are ≤ 16 KiB so this cap is safe.
+    /* Re-assert bound for the verifier.  Clamp to MAX_DATA-1 first so that
+     * the edge case read_len==MAX_DATA does not map to 0 via &(MAX_DATA-1).
+     * TLS records are ≤ 16 KiB so this clamp never actually truncates data.
      */
-    __u32 capped = read_len & (MAX_DATA - 1);
-    e->data_len = capped;
-    if (capped > 0)
-        bpf_probe_read_user(e->data, capped & (MAX_DATA - 1), buf);
+    if (read_len >= MAX_DATA)
+        read_len = MAX_DATA - 1;
+    e->data_len = read_len;
+    if (read_len > 0)
+        bpf_probe_read_user(e->data, read_len & (MAX_DATA - 1), buf);
     bpf_ringbuf_submit(e, 0);
     return 0;
 }
@@ -603,12 +602,13 @@ int ssl_free_entry(struct pt_regs *ctx)
         bpf_ringbuf_submit(e, 0);
     }
 
-    bpf_map_delete_elem(&ssl_read_args, &pid_tgid);
-    bpf_map_delete_elem(&ssl_write_args, &pid_tgid);
-    bpf_map_delete_elem(&ssl_read_ex_args, &pid_tgid);
-    bpf_map_delete_elem(&ssl_write_ex_args, &pid_tgid);
+    // Only clean up ssl_ptr-keyed maps.  Do NOT delete from pid_tgid-keyed
+    // args maps — in async runtimes the looked-up pid_tgid may belong to a
+    // different, still-active connection.  Args maps self-clean in each
+    // uretprobe exit handler after the operation completes.
     bpf_map_delete_elem(&ssl_ptr_to_pid, &ssl_ptr);
     bpf_map_delete_elem(&ssl_ptr_to_conn, &ssl_ptr);
+    bpf_map_delete_elem(&active_connections, &pid_tgid);
     return 0;
 }
 
@@ -813,6 +813,146 @@ int go_tls_read_exit(struct pt_regs *ctx)
     return 0;
 }
 
+SEC("kprobe/tcp_close")
+int tcp_close_entry(struct pt_regs *ctx)
+{
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    bpf_map_delete_elem(&active_connections, &pid_tgid);
+    return 0;
+}
+
+// ---------------------------------------------------------------------------
+// UDP / QUIC capture — kprobes on udp_sendmsg / udp_recvmsg
+// ---------------------------------------------------------------------------
+
+struct udp_send_args {
+    __u64 sock_ptr;
+    __u64 msg_ptr;
+    __u32 len;
+    __u32 _pad;
+};
+
+struct {
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
+    __uint(max_entries, 8192);
+    __type(key, __u64);   // pid_tgid
+    __type(value, struct udp_send_args);
+} udp_send_args_map SEC(".maps");
+
+SEC("kprobe/udp_sendmsg")
+int udp_sendmsg_entry(struct pt_regs *ctx)
+{
+    struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+    if (!sk) return 0;
+
+    __u16 dst_port = 0;
+    bpf_core_read(&dst_port, sizeof(dst_port), &sk->__sk_common.skc_dport);
+    dst_port = bpf_ntohs(dst_port);
+
+    // Only capture QUIC-likely traffic (UDP port 443, 8443, 4433)
+    if (dst_port != 443 && dst_port != 8443 && dst_port != 4433) return 0;
+
+    struct conn_info info = {};
+    fill_conn_info(&info, sk);
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    bpf_map_update_elem(&active_connections, &pid_tgid, &info, BPF_ANY);
+
+    struct udp_send_args args = {};
+    args.sock_ptr = (__u64)sk;
+    args.msg_ptr = (__u64)PT_REGS_PARM2(ctx);
+    args.len = (__u32)PT_REGS_PARM3(ctx);
+    bpf_map_update_elem(&udp_send_args_map, &pid_tgid, &args, BPF_ANY);
+    return 0;
+}
+
+SEC("kretprobe/udp_sendmsg")
+int udp_sendmsg_exit(struct pt_regs *ctx)
+{
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct udp_send_args *args = bpf_map_lookup_elem(&udp_send_args_map, &pid_tgid);
+    int ret = (int)PT_REGS_RC(ctx);
+    if (!args) return 0;
+
+    if (ret > 0) {
+        // Emit the first chunk of the UDP payload as a TLS event
+        // Direction 1 = WRITE (egress)
+        // We use sock_ptr as the "ssl_ptr" analog for QUIC connection tracking
+        struct msghdr *msg = (struct msghdr *)args->msg_ptr;
+        if (msg) {
+            struct iov_iter iter = {};
+            bpf_core_read(&iter, sizeof(iter), &msg->msg_iter);
+            // Read first iovec
+            void *iov_base = NULL;
+            struct iovec *iov = NULL;
+            bpf_core_read(&iov, sizeof(iov), &iter.__iov);
+            if (iov) {
+                bpf_core_read(&iov_base, sizeof(iov_base), &iov->iov_base);
+                if (iov_base) {
+                    __u32 data_len = (__u32)ret;
+                    emit_event(ctx, iov_base, data_len, 1, args->sock_ptr);
+                }
+            }
+        }
+    }
+    bpf_map_delete_elem(&udp_send_args_map, &pid_tgid);
+    return 0;
+}
+
+SEC("kprobe/udp_recvmsg")
+int udp_recvmsg_entry(struct pt_regs *ctx)
+{
+    struct sock *sk = (struct sock *)PT_REGS_PARM1(ctx);
+    if (!sk) return 0;
+
+    __u16 src_port = 0;
+    bpf_core_read(&src_port, sizeof(src_port), &sk->__sk_common.skc_num);
+
+    // Only capture QUIC-likely traffic
+    if (src_port != 443 && src_port != 8443 && src_port != 4433) return 0;
+
+    struct conn_info info = {};
+    fill_conn_info(&info, sk);
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    bpf_map_update_elem(&active_connections, &pid_tgid, &info, BPF_ANY);
+
+    struct udp_send_args args = {};
+    args.sock_ptr = (__u64)sk;
+    args.msg_ptr = (__u64)PT_REGS_PARM2(ctx);
+    args.len = (__u32)PT_REGS_PARM3(ctx);
+    bpf_map_update_elem(&udp_send_args_map, &pid_tgid, &args, BPF_ANY);
+    return 0;
+}
+
+SEC("kretprobe/udp_recvmsg")
+int udp_recvmsg_exit(struct pt_regs *ctx)
+{
+    __u64 pid_tgid = bpf_get_current_pid_tgid();
+    struct udp_send_args *args = bpf_map_lookup_elem(&udp_send_args_map, &pid_tgid);
+    int ret = (int)PT_REGS_RC(ctx);
+    if (!args) return 0;
+
+    if (ret > 0) {
+        struct msghdr *msg = (struct msghdr *)args->msg_ptr;
+        if (msg) {
+            struct iov_iter iter = {};
+            bpf_core_read(&iter, sizeof(iter), &msg->msg_iter);
+            void *iov_base = NULL;
+            struct iovec *iov = NULL;
+            bpf_core_read(&iov, sizeof(iov), &iter.__iov);
+            if (iov) {
+                bpf_core_read(&iov_base, sizeof(iov_base), &iov->iov_base);
+                if (iov_base) {
+                    __u32 data_len = (__u32)ret;
+                    // Direction 0 = READ (ingress)
+                    emit_event(ctx, iov_base, data_len, 0, args->sock_ptr);
+                }
+            }
+        }
+    }
+    bpf_map_delete_elem(&udp_send_args_map, &pid_tgid);
+    return 0;
+}
+
 SEC("tracepoint/sched/sched_process_exec")
 int handle_new_process(struct trace_event_raw_sched_process_exec *ctx)
 {
@@ -823,9 +963,9 @@ int handle_new_process(struct trace_event_raw_sched_process_exec *ctx)
     e->cgroup_id = bpf_get_current_cgroup_id();
     bpf_get_current_comm(&e->comm, sizeof(e->comm));
 
-    // __data_loc_filename is a u32 encoding: upper 16 bits = offset, lower 16 bits = length
+    // __data_loc encoding: lower 16 bits = offset, upper 16 bits = length
     __u32 data_loc = ctx->__data_loc_filename;
-    __u16 offset   = (__u16)(data_loc >> 16);
+    __u16 offset   = (__u16)(data_loc & 0xFFFF);
     const char *fn = (const char *)ctx + offset;
     bpf_probe_read_str(&e->filename, sizeof(e->filename), fn);
 

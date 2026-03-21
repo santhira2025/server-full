@@ -1,19 +1,22 @@
-use axum::{Router, routing::get, response::IntoResponse};
+use axum::{response::IntoResponse, routing::get, Router};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-pub static EVENTS_CAPTURED:    AtomicU64 = AtomicU64::new(0);
-pub static EVENTS_DROPPED:     AtomicU64 = AtomicU64::new(0);
-pub static EVENTS_SENT:        AtomicU64 = AtomicU64::new(0);
-pub static SEND_ERRORS:        AtomicU64 = AtomicU64::new(0);
-pub static RINGBUF_DROPS:      AtomicU64 = AtomicU64::new(0);
-pub static PROTO_HTTP1:        AtomicU64 = AtomicU64::new(0);
-pub static PROTO_HTTP2:        AtomicU64 = AtomicU64::new(0);
-pub static PROTO_GRPC:         AtomicU64 = AtomicU64::new(0);
-pub static PROTO_WEBSOCKET:    AtomicU64 = AtomicU64::new(0);
-pub static PROTO_MCP:          AtomicU64 = AtomicU64::new(0);
-pub static PROTO_GO_TLS:       AtomicU64 = AtomicU64::new(0);
+use crate::dns::{DNS_CACHE_HITS, DNS_CACHE_SIZE, DNS_LOOKUPS_FAIL, DNS_LOOKUPS_OK};
+
+pub static EVENTS_CAPTURED: AtomicU64 = AtomicU64::new(0);
+pub static EVENTS_DROPPED: AtomicU64 = AtomicU64::new(0);
+pub static EVENTS_SENT: AtomicU64 = AtomicU64::new(0);
+pub static SEND_ERRORS: AtomicU64 = AtomicU64::new(0);
+pub static RINGBUF_DROPS: AtomicU64 = AtomicU64::new(0);
+pub static PROTO_HTTP1: AtomicU64 = AtomicU64::new(0);
+pub static PROTO_HTTP2: AtomicU64 = AtomicU64::new(0);
+pub static PROTO_GRPC: AtomicU64 = AtomicU64::new(0);
+pub static PROTO_WEBSOCKET: AtomicU64 = AtomicU64::new(0);
+pub static PROTO_MCP: AtomicU64 = AtomicU64::new(0);
+pub static PROTO_GO_TLS: AtomicU64 = AtomicU64::new(0);
+pub static PROTO_QUIC: AtomicU64 = AtomicU64::new(0);
 pub static ACTIVE_CONNECTIONS: AtomicU64 = AtomicU64::new(0);
-pub static START_TIME_SECS:    AtomicU64 = AtomicU64::new(0);
+pub static START_TIME_SECS: AtomicU64 = AtomicU64::new(0);
 pub static CHANNEL_WATERMARK_PCT: AtomicU64 = AtomicU64::new(0);
 
 /// Startup grace period — /readyz returns 200 during this window even without events.
@@ -21,12 +24,16 @@ const READYZ_GRACE_SECS: u64 = 30;
 
 async fn metrics_handler() -> impl IntoResponse {
     let captured = EVENTS_CAPTURED.load(Ordering::Relaxed);
-    let dropped  = EVENTS_DROPPED.load(Ordering::Relaxed);
-    let drop_rate = if captured > 0 { dropped * 10000 / captured } else { 0 };
+    let dropped = EVENTS_DROPPED.load(Ordering::Relaxed);
+    let drop_rate = if captured > 0 {
+        dropped * 10000 / captured
+    } else {
+        0
+    };
     let uptime = now_secs().saturating_sub(START_TIME_SECS.load(Ordering::Relaxed));
 
-    format!(
-"# HELP apisec_events_captured_total TLS events captured
+    let body = format!(
+        "# HELP apisec_events_captured_total TLS events captured
 # TYPE apisec_events_captured_total counter
 apisec_events_captured_total {captured}
 
@@ -62,10 +69,24 @@ apisec_protocol_events_total{{protocol=\"grpc\"}} {p_grpc}
 apisec_protocol_events_total{{protocol=\"websocket\"}} {p_ws}
 apisec_protocol_events_total{{protocol=\"mcp\"}} {p_mcp}
 apisec_protocol_events_total{{protocol=\"go_tls\"}} {p_gotls}
+apisec_protocol_events_total{{protocol=\"quic\"}} {p_quic}
 
 # HELP apisec_channel_watermark_pct Channel backpressure watermark
 # TYPE apisec_channel_watermark_pct gauge
 apisec_channel_watermark_pct {watermark}
+
+# HELP apisec_dns_lookups_total DNS reverse lookups
+# TYPE apisec_dns_lookups_total counter
+apisec_dns_lookups_total{{result=\"ok\"}} {dns_ok}
+apisec_dns_lookups_total{{result=\"fail\"}} {dns_fail}
+
+# HELP apisec_dns_cache_hits_total DNS cache hits
+# TYPE apisec_dns_cache_hits_total counter
+apisec_dns_cache_hits_total {dns_cache_hits}
+
+# HELP apisec_dns_cache_size Current DNS cache entries
+# TYPE apisec_dns_cache_size gauge
+apisec_dns_cache_size {dns_cache_size}
 
 # HELP apisec_uptime_seconds Sensor uptime
 # TYPE apisec_uptime_seconds gauge
@@ -81,20 +102,40 @@ apisec_uptime_seconds {uptime}
         p_ws = PROTO_WEBSOCKET.load(Ordering::Relaxed),
         p_mcp = PROTO_MCP.load(Ordering::Relaxed),
         p_gotls = PROTO_GO_TLS.load(Ordering::Relaxed),
+        p_quic = PROTO_QUIC.load(Ordering::Relaxed),
         watermark = CHANNEL_WATERMARK_PCT.load(Ordering::Relaxed),
+        dns_ok = DNS_LOOKUPS_OK.load(Ordering::Relaxed),
+        dns_fail = DNS_LOOKUPS_FAIL.load(Ordering::Relaxed),
+        dns_cache_hits = DNS_CACHE_HITS.load(Ordering::Relaxed),
+        dns_cache_size = DNS_CACHE_SIZE.load(Ordering::Relaxed),
+    );
+    (
+        [(
+            axum::http::header::CONTENT_TYPE,
+            "text/plain; version=0.0.4; charset=utf-8",
+        )],
+        body,
     )
 }
 
 async fn health_handler() -> impl IntoResponse {
-    let dropped  = EVENTS_DROPPED.load(Ordering::Relaxed);
+    let dropped = EVENTS_DROPPED.load(Ordering::Relaxed);
     let captured = EVENTS_CAPTURED.load(Ordering::Relaxed);
-    let drop_pct = if captured > 0 { dropped * 100 / captured } else { 0 };
-    if drop_pct > 20 {
-        (axum::http::StatusCode::SERVICE_UNAVAILABLE,
-         format!("{{\"status\":\"degraded\",\"drop_pct\":{drop_pct}}}"))
+    let drop_pct = if captured > 0 {
+        dropped * 100 / captured
     } else {
-        (axum::http::StatusCode::OK,
-         format!("{{\"status\":\"ok\",\"captured\":{captured},\"drop_pct\":{drop_pct}}}"))
+        0
+    };
+    if drop_pct > 20 {
+        (
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            format!("{{\"status\":\"degraded\",\"drop_pct\":{drop_pct}}}"),
+        )
+    } else {
+        (
+            axum::http::StatusCode::OK,
+            format!("{{\"status\":\"ok\",\"captured\":{captured},\"drop_pct\":{drop_pct}}}"),
+        )
     }
 }
 
@@ -108,7 +149,10 @@ async fn ready_handler() -> impl IntoResponse {
     if uptime < READYZ_GRACE_SECS {
         (axum::http::StatusCode::OK, "{\"ready\":true}")
     } else {
-        (axum::http::StatusCode::SERVICE_UNAVAILABLE, "{\"ready\":false}")
+        (
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            "{\"ready\":false}",
+        )
     }
 }
 
@@ -123,7 +167,7 @@ pub async fn start_metrics_server(port: u16) {
     let app = Router::new()
         .route("/metrics", get(metrics_handler))
         .route("/healthz", get(health_handler))
-        .route("/readyz",  get(ready_handler));
+        .route("/readyz", get(ready_handler));
     let addr = format!("0.0.0.0:{port}");
     match tokio::net::TcpListener::bind(&addr).await {
         Ok(listener) => {

@@ -27,7 +27,10 @@ pub async fn send_batch_with_client(
     use std::io::Write as IoWrite;
 
     let event_count = events.len() as u64;
-    let body_struct = EventBatch { version: "v1".to_string(), events };
+    let body_struct = EventBatch {
+        version: "v1".to_string(),
+        events,
+    };
     let json_bytes = serde_json::to_vec(&body_struct)?;
 
     let (payload, content_encoding) = if json_bytes.len() > 4096 {
@@ -80,5 +83,9 @@ pub async fn send_batch_with_client(
         }
     }
     SEND_ERRORS.fetch_add(1, Ordering::Relaxed);
-    Err(anyhow::anyhow!("ingest failed after {} retries: {:?}", MAX_RETRIES, last_err))
+    Err(anyhow::anyhow!(
+        "ingest failed after {} retries: {:?}",
+        MAX_RETRIES,
+        last_err
+    ))
 }

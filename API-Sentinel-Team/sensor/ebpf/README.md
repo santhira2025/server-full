@@ -82,18 +82,24 @@ sudo ./userspace/target/release/api-sec-sensor \
 
 ### CLI Options
 
-| Flag | Description |
-|------|-------------|
-| `--bpf <path>` | Path to compiled BPF object |
-| `--ingest <url>` | Ingest endpoint URL |
-| `--api-key <key>` | API authentication token |
-| `--account-id <id>` | Account ID sent in event metadata |
-| `--role client\|server` | Traffic role for event tagging |
-| `--metrics-port <port>` | Prometheus metrics port (default: 9090) |
-| `--tls-libs <path>` | Path to libssl shared library |
-| `--discover-libs` | Auto-detect TLS libraries from `/proc/<pid>/maps` |
-| `--go-tls` | Enable Go TLS interception via `crypto/tls` uprobes |
-| `--pid <pid>` | Scope probes to a single process PID |
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--bpf <path>` | required | Path to compiled BPF object |
+| `--ingest <url>` | required | Ingest endpoint URL |
+| `--api-key <key>` | `$API_KEY` | API authentication token |
+| `--account-id <id>` | `1000000` | Account ID sent in event metadata |
+| `--role client\|server` | `server` | Traffic role for event tagging |
+| `--batch-size <n>` | `200` | Events per batch |
+| `--metrics-port <port>` | `9090` | Prometheus metrics port |
+| `--tls-libs <path>` | system libssl | Path to libssl shared library (comma-separated) |
+| `--tls-provider <name>` | `auto` | Force TLS provider: `openssl`, `gnutls`, or `auto` |
+| `--discover-libs` | `false` | Auto-detect TLS libraries from `/proc/<pid>/maps` |
+| `--go-tls` | `false` | Enable Go TLS interception via `crypto/tls` uprobes |
+| `--pid <pid>` | `-1` (all) | Scope probes to a single process PID |
+| `--max-buffer-bytes <n>` | `65536` | Max per-connection buffer size |
+| `--max-total-buffer-bytes <n>` | `104857600` | Global memory ceiling (100MB) |
+| `--sample-default <0-100>` | `100` | Default sampling rate (100 = capture all) |
+| `--sample-health <0-100>` | `5` | Sampling rate for health/metrics endpoints |
 
 ---
 
@@ -126,16 +132,21 @@ Detects the HTTP/2 client preface (`PRI * HTTP/2.0`) and decodes headers using a
 
 The following patterns are detected and redacted before events are shipped:
 
-| Type | Example raw | Redacted |
-|------|------------|---------|
+| Type | Pattern | Redacted Token |
+|------|---------|---------------|
 | Email | `alice@example.com` | `PII_EMAIL_*` |
 | SSN | `123-45-6789` | `PII_SSN_*` |
-| Credit card | `4111-1111-1111-1111` | `PII_CC_*` |
+| Credit card | `4111111111111111` (Luhn validated) | `PII_CARD_*` |
 | Phone | `+1-800-555-1234` | `PII_PHONE_*` |
-| AWS key | `AKIA...` | `PII_AWS_KEY_*` |
-| JWT token | `eyJ...` | `PII_JWT_*` |
+| JWT | `eyJhbG...` | `PII_JWT_*` |
+| Bearer Token | `Bearer abc123...` | `PII_TOKEN_*` |
+| Private Key | `-----BEGIN RSA PRIVATE KEY-----` | `PII_PRIVATE_KEY_REDACTED` |
+| AWS Access Key | `AKIA...` (20 chars) | `PII_AWSKEY_*` |
+| GCP OAuth Token | `ya29....` | `PII_GCPTOKEN_*` |
+| Indian PAN | `ABCDE1234F` | `PII_PAN_*` |
+| Aadhaar | `1234 5678 9012` | `PII_AADHAAR_*` |
 
-Applied to URL query parameters, request/response headers, and body fields.
+Applied to URL query parameters, request/response headers, and body fields. Credit card detection includes Luhn checksum validation to minimize false positives.
 
 ---
 
@@ -149,31 +160,268 @@ Flags events with `has_injection: true` when the following are detected:
 
 ---
 
+## Protocol Support Matrix
+
+| Protocol | Detection Method | Event Fields |
+|----------|-----------------|--------------|
+| HTTP/1.1 | Header parsing (`GET`/`POST`/...) | method, path, status, headers, latency |
+| HTTP/2 | Client preface + HPACK decode | :method, :path, :status, :authority |
+| gRPC | HTTP/2 + `content-type: application/grpc` | protobuf field decode |
+| WebSocket | HTTP Upgrade header detection | opcode, payload |
+| MCP/SSE | `content-type: text/event-stream` | JSON-RPC method, tool_name, injection flags |
+| Go TLS | ELF symbol + capstone RET scan | Same as HTTP/1.1 or HTTP/2 |
+
+## Anomaly Features (AEGIS SWARM)
+
+Each event includes optional `anomaly_features` for downstream ML:
+
+| Feature | Description |
+|---------|-------------|
+| `path_depth` | Number of `/` segments in URL path |
+| `query_param_count` | Number of query string parameters |
+| `has_encoded_chars` | URL contains `%`-encoded characters |
+| `request_size_bucket` | log2 bucket of request body size |
+| `shannon_entropy` | Shannon entropy of URL path |
+| `has_sqli_pattern` | SQL injection keywords detected |
+| `has_xss_pattern` | XSS patterns detected |
+| `has_path_traversal` | `../` or `..\` patterns found |
+
+---
+
 ## Prometheus Metrics
 
 Available at `http://localhost:9090/metrics`:
 
-| Metric | Description |
-|--------|-------------|
-| `apisec_events_captured_total` | Total TLS events captured |
-| `apisec_ringbuf_drops_total` | Ring buffer overflow drops |
-| `apisec_uptime_seconds` | Sensor uptime in seconds |
+| Metric | Type | Description |
+|--------|------|-------------|
+| `apisec_events_captured_total` | counter | Total TLS events captured |
+| `apisec_events_dropped_total` | counter | Events dropped (backpressure) |
+| `apisec_events_sent_total` | counter | Events sent to ingest |
+| `apisec_send_errors_total` | counter | HTTP/transport send errors |
+| `apisec_ringbuf_drops_total` | counter | Kernel ring buffer drops |
+| `apisec_active_connections` | gauge | Active TLS connections |
+| `apisec_channel_watermark_pct` | gauge | Channel backpressure watermark (0-100%) |
+| `apisec_drop_rate_bps` | gauge | Drop rate in basis points |
+| `apisec_protocol_events_total` | counter | Events by protocol (http1, http2, grpc, websocket, mcp, go_tls) |
+| `apisec_uptime_seconds` | gauge | Sensor uptime in seconds |
 
-Health check: `GET http://localhost:9090/healthz` → `{"status":"ok"}`
+Health check: `GET /healthz` returns 200 (ok) or 503 (degraded, >20% drop rate)
+Readiness: `GET /readyz` returns 200 if events captured or within 30s grace period
 
 ---
 
-## Kubernetes Deployment
+## Kubernetes DaemonSet Deployment
 
-Deploy as a privileged DaemonSet with host PID namespace:
+### Prerequisites
 
-```yaml
-securityContext:
-  privileged: true
-hostPID: true
+- Kubernetes 1.25+ cluster with Linux nodes (kernel 5.8+)
+- `kubectl` and `helm` v3 installed
+- Container registry (GHCR, ECR, Docker Hub, Harbor, etc.)
+- Nodes must have BPF support enabled (standard on most distros)
+
+### Step 1: Build the Docker Image
+
+```bash
+cd sensor/ebpf
+
+# Build the production image (multi-stage: BPF compile → Rust compile → minimal runtime)
+docker build -t ghcr.io/api-sentinel-team/sensor:latest .
+
+# Tag with a version
+docker tag ghcr.io/api-sentinel-team/sensor:latest \
+           ghcr.io/api-sentinel-team/sensor:v1.0.0
 ```
 
-Container enrichment maps PIDs to container names/namespaces via cgroups v1/v2 and optionally via the containerd CRI socket at `/run/containerd/containerd.sock` (override with `CRI_SOCKET` env var).
+### Step 2: Push to Container Registry
+
+```bash
+# GHCR (GitHub Container Registry)
+echo $GITHUB_TOKEN | docker login ghcr.io -u USERNAME --password-stdin
+docker push ghcr.io/api-sentinel-team/sensor:v1.0.0
+docker push ghcr.io/api-sentinel-team/sensor:latest
+
+# Or ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com
+docker tag ghcr.io/api-sentinel-team/sensor:v1.0.0 <ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/api-sentinel-sensor:v1.0.0
+docker push <ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/api-sentinel-sensor:v1.0.0
+
+# Or Docker Hub
+docker tag ghcr.io/api-sentinel-team/sensor:v1.0.0 yourorg/api-sentinel-sensor:v1.0.0
+docker push yourorg/api-sentinel-sensor:v1.0.0
+```
+
+### Step 3: Create the API Key Secret
+
+```bash
+kubectl create namespace api-sentinel
+
+kubectl create secret generic api-sentinel-sensor \
+  --namespace api-sentinel \
+  --from-literal=api-key=<YOUR_API_KEY>
+```
+
+### Step 4: Install with Helm
+
+```bash
+# From the repo root
+helm install api-sentinel-sensor deploy/helm/api-sentinel-sensor/ \
+  --namespace api-sentinel \
+  --set image.repository=ghcr.io/api-sentinel-team/sensor \
+  --set image.tag=v1.0.0 \
+  --set sensor.ingestUrl=https://ingest.example.com/v1/events \
+  --set sensor.accountId="1000000"
+```
+
+#### Common Helm Overrides
+
+```bash
+helm install api-sentinel-sensor deploy/helm/api-sentinel-sensor/ \
+  --namespace api-sentinel \
+  --set image.repository=ghcr.io/api-sentinel-team/sensor \
+  --set image.tag=v1.0.0 \
+  --set sensor.ingestUrl=https://ingest.example.com/v1/events \
+  --set sensor.accountId="1000000" \
+  --set sensor.batchSize="500" \
+  --set sensor.sampleDefault="50" \
+  --set sensor.sampleHealth="1" \
+  --set sensor.role=server \
+  --set resources.limits.cpu=1000m \
+  --set resources.limits.memory=512Mi \
+  --set resources.requests.cpu=200m \
+  --set resources.requests.memory=256Mi
+```
+
+#### Using a Custom values.yaml
+
+```bash
+cp deploy/helm/api-sentinel-sensor/values.yaml my-values.yaml
+# Edit my-values.yaml with your settings
+helm install api-sentinel-sensor deploy/helm/api-sentinel-sensor/ \
+  --namespace api-sentinel -f my-values.yaml
+```
+
+### Helm Values Reference
+
+| Value | Default | Description |
+|-------|---------|-------------|
+| `image.repository` | `ghcr.io/api-sentinel-team/sensor` | Container image repository |
+| `image.tag` | `latest` | Image tag |
+| `image.pullPolicy` | `IfNotPresent` | Image pull policy |
+| `sensor.ingestUrl` | `http://api-sentinel-ingest:8080/v1/events` | Backend ingest endpoint |
+| `sensor.accountId` | `1000000` | Account ID for event metadata |
+| `sensor.batchSize` | `200` | Events per batch |
+| `sensor.role` | `server` | Traffic role (`server` or `client`) |
+| `sensor.sampleDefault` | `100` | Default sampling rate (0-100) |
+| `sensor.sampleHealth` | `5` | Health endpoint sampling rate |
+| `sensor.metricsPort` | `9090` | Prometheus metrics port |
+| `sensor.maxBufferBytes` | `65536` | Per-connection buffer size |
+| `sensor.maxTotalBufferBytes` | `104857600` | Global memory ceiling (100MB) |
+| `apiKeySecret.name` | `api-sentinel-sensor` | K8s Secret name for API key |
+| `apiKeySecret.key` | `api-key` | Key within the Secret |
+| `resources.limits.cpu` | `500m` | CPU limit |
+| `resources.limits.memory` | `256Mi` | Memory limit |
+| `resources.requests.cpu` | `100m` | CPU request |
+| `resources.requests.memory` | `128Mi` | Memory request |
+| `nodeSelector` | `{}` | Node selector labels |
+| `tolerations` | `[]` | Tolerations for taints |
+
+### What the DaemonSet Does
+
+The Helm chart deploys the sensor as a **DaemonSet** (one pod per node) with:
+
+- **`hostPID: true`** — required to see all processes and attach uprobes
+- **Capabilities** (not `privileged: true`):
+  - `CAP_BPF` — load BPF programs
+  - `CAP_PERFMON` — attach perf events / uprobes
+  - `CAP_SYS_ADMIN` — access debugfs, BPF maps
+  - `CAP_SYS_PTRACE` — read `/proc/<pid>/maps` for TLS library discovery
+- **Volume Mounts**:
+  - `/sys/kernel/debug` (read-only) — required for uprobe attachment
+  - `/sys/fs/bpf` — BPF map pinning
+  - `/sys/fs/cgroup` (read-only) — container-to-PID mapping
+- **Prometheus annotations** — auto-scraped by Prometheus Operator
+- **Liveness probe** — `GET /healthz` (degraded if >20% drop rate)
+- **Readiness probe** — `GET /readyz` (ready once events are captured or within 30s grace)
+
+### Step 5: Verify the Deployment
+
+```bash
+# Check DaemonSet rollout
+kubectl -n api-sentinel get daemonset api-sentinel-sensor
+kubectl -n api-sentinel rollout status daemonset/api-sentinel-sensor
+
+# Check pods are running on all nodes
+kubectl -n api-sentinel get pods -o wide
+
+# View sensor logs
+kubectl -n api-sentinel logs -l app.kubernetes.io/name=api-sentinel-sensor --tail=50
+
+# Check metrics from a pod
+kubectl -n api-sentinel port-forward daemonset/api-sentinel-sensor 9090:9090 &
+curl -s http://localhost:9090/metrics | grep apisec_events_captured
+curl -s http://localhost:9090/healthz
+```
+
+### Upgrade
+
+```bash
+helm upgrade api-sentinel-sensor deploy/helm/api-sentinel-sensor/ \
+  --namespace api-sentinel \
+  --set image.tag=v1.1.0
+```
+
+### Uninstall
+
+```bash
+helm uninstall api-sentinel-sensor --namespace api-sentinel
+kubectl delete namespace api-sentinel
+```
+
+### Monitoring with Prometheus
+
+The sensor exposes Prometheus metrics with auto-scrape annotations. If you use **kube-prometheus-stack**:
+
+```yaml
+# ServiceMonitor (optional — Helm already adds pod annotations)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: api-sentinel-sensor
+  namespace: api-sentinel
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api-sentinel-sensor
+  endpoints:
+    - port: metrics
+      interval: 15s
+```
+
+Useful Grafana queries:
+- **Event capture rate**: `rate(apisec_events_captured_total[5m])`
+- **Drop rate**: `apisec_drop_rate_bps / 100` (percentage)
+- **Send errors**: `rate(apisec_send_errors_total[5m])`
+- **Events by protocol**: `rate(apisec_protocol_events_total[5m])`
+- **Memory pressure**: `apisec_channel_watermark_pct`
+
+### Troubleshooting
+
+| Symptom | Check | Fix |
+|---------|-------|-----|
+| Pod in CrashLoopBackOff | `kubectl logs <pod>` | Ensure kernel 5.8+, check BPF object path |
+| No events captured | Check `apisec_events_captured_total` metric | Verify TLS traffic exists on node, check `--discover-libs` |
+| High drop rate | Check `apisec_drop_rate_bps` | Increase `resources.limits.memory`, reduce `sampleDefault` |
+| Probe failures | `kubectl describe pod <pod>` | Check `metricsPort` matches, ensure sensor started |
+| Permission denied | `kubectl logs <pod>` | Verify securityContext capabilities, node kernel supports BPF |
+| Image pull error | `kubectl describe pod <pod>` | Check registry credentials, imagePullSecrets |
+
+### Container Enrichment
+
+The sensor maps PIDs to container names/namespaces via:
+- **cgroups v1/v2** — reads `/proc/<pid>/cgroup` and `/sys/fs/cgroup` hierarchy
+- **containerd CRI socket** — queries `/run/containerd/containerd.sock` (override with `CRI_SOCKET` env var)
+
+Each event includes `container_name` and `container_namespace` when running inside Kubernetes.
 
 ---
 
@@ -240,6 +488,26 @@ bash scripts/docker-entrypoint.sh --skip-gotls
 
 ---
 
+## Fuzz Testing
+
+All parsers have been fuzz-tested with `cargo-fuzz` (libfuzzer) — 350M+ total executions, 0 panics:
+
+| Fuzz Target | Parser | Status |
+|-------------|--------|--------|
+| `fuzz_http` | HTTP/1.1 request parser | PASS (645K+ runs) |
+| `fuzz_http2` | HTTP/2 HPACK decoder | PASS (crash found & fixed) |
+| `fuzz_websocket` | WebSocket frame parser | PASS (crash found & fixed) |
+| `fuzz_grpc` | gRPC protobuf decoder | PASS (crash found & fixed) |
+| `fuzz_redaction` | PII redaction engine | PASS |
+| `fuzz_stream` | Stream reassembly | PASS |
+
+Fixes applied:
+- **HPACK**: Pre-validator prevents panics from upstream `hpack-0.3.0` crate bug (`.ok().unwrap()`)
+- **WebSocket**: `checked_add()` prevents integer overflow on malformed 64-bit frame lengths
+- **gRPC**: `saturating_add()` prevents integer overflow on malformed varint lengths
+
+---
+
 ## Validated Environment
 
 | Component | Version |
@@ -247,7 +515,7 @@ bash scripts/docker-entrypoint.sh --skip-gotls
 | Linux kernel | 6.8.0-101-generic |
 | Ubuntu | 24.04 |
 | OpenSSL | 3.x |
-| Go | 1.21.13 |
+| Go | 1.22.4 |
 | Rust | stable |
 | bpftool | v7.4.0 |
 | libbpf | 1.x |

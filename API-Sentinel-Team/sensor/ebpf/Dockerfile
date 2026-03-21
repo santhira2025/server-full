@@ -10,11 +10,18 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /build
 COPY bpf/ bpf/
-RUN clang -O2 -g -target bpf \
-    -D__TARGET_ARCH_x86 \
-    -I/usr/include/x86_64-linux-gnu \
-    -c bpf/http_trace.bpf.c \
-    -o bpf/http_trace.bpf.o
+ARG TARGETARCH=amd64
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      ARCH_FLAG="-D__TARGET_ARCH_arm64"; \
+      INCLUDE_FLAG="-I/usr/include/aarch64-linux-gnu"; \
+    else \
+      ARCH_FLAG="-D__TARGET_ARCH_x86"; \
+      INCLUDE_FLAG="-I/usr/include/x86_64-linux-gnu"; \
+    fi && \
+    clang -O2 -g -target bpf \
+      $ARCH_FLAG $INCLUDE_FLAG \
+      -c bpf/http_trace.bpf.c \
+      -o bpf/http_trace.bpf.o
 
 # ---- Stage 2: Build Rust binary ----
 FROM rust:1.82-bookworm AS rust-builder

@@ -1,4 +1,7 @@
 userspace/target/
+userspace/fuzz/target/
+userspace/fuzz/corpus/
+userspace/fuzz/artifacts/
 bpf/http_trace.bpf.o
 bpf/vmlinux.h
 *.o
